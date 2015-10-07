@@ -20,7 +20,7 @@
     "bower_components"
   ],
   "dependencies": {
-    "google-closure-library": "*"
+    "google-closure-library": "git://github.com/google/closure-library.git#56712dfced32778fc8435a4bea6a2e422e5f03c1"
   },
   "devDependencies": {
     "qunit": "1.19.0",
