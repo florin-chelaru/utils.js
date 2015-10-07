@@ -4,3 +4,4 @@ goog.addDependency('../../../../src/u/array/array.js', ['u.array'], [], false);
 goog.addDependency('../../../../src/u/exception.js', ['u.Exception'], [], false);
 goog.addDependency('../../../../src/u/reflection/reflection-exception.js', ['u.reflection.ReflectionException'], ['u.Exception'], false);
 goog.addDependency('../../../../src/u/reflection/reflection.js', ['u.reflection'], ['u.array', 'u.reflection.ReflectionException'], false);
+goog.addDependency('../../../../src/u/u.js', ['u'], [], false);

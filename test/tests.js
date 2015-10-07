@@ -47,3 +47,21 @@ QUnit.test('u.reflection.ReflectionException', function() {
   ok(e.stack);
   deepEqual(e.innerException, inner);
 });
+
+QUnit.test('u.each', function() {
+  ok(u.each);
+
+  var obj = {'a': 'x', 'b': 7, '9': 'f'};
+  var expObj = [['9', 'f'], ['a', 'x'], ['b', 7]];
+  var actObj = [];
+  u.each(obj, function(k, v) { actObj.push([k, v]); });
+
+  deepEqual(actObj, expObj);
+
+  var arr = ['x', 7, 'f'];
+  var expArr = [[0, 'x'], [1, 7], [2, 'f']];
+  var actArr = [];
+  u.each(arr, function(i, v) { actArr.push([i, v]); });
+
+  deepEqual(actArr, expArr);
+});
