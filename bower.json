@@ -1,0 +1,29 @@
+{
+  "name": "utils.js",
+  "version": "0.0.0",
+  "authors": [
+    "Florin Chelaru <florinc@mit.edu>"
+  ],
+  "description": "Utility methods and classes for JavaScript",
+  "moduleType": [
+    "globals"
+  ],
+  "keywords": [
+    "utils",
+    "reflection",
+    "exception"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components"
+  ],
+  "dependencies": {
+    "google-closure-library": "*"
+  },
+  "devDependencies": {
+    "qunit": "1.19.0",
+    "closure-compiler": "0.2.7"
+  }
+}
