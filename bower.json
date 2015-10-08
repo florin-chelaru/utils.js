@@ -1,6 +1,6 @@
 {
   "name": "utils.js",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "authors": [
     "Florin Chelaru <florinc@mit.edu>"
   ],
@@ -20,9 +20,9 @@
     "bower_components"
   ],
   "dependencies": {
-    "google-closure-library": "git://github.com/google/closure-library.git#56712dfced32778fc8435a4bea6a2e422e5f03c1"
   },
   "devDependencies": {
+    "google-closure-library": "git://github.com/google/closure-library.git#56712dfced32778fc8435a4bea6a2e422e5f03c1",
     "qunit": "1.19.0",
     "closure-compiler": "0.2.7"
   }
