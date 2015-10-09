@@ -65,3 +65,11 @@ QUnit.test('u.each', function() {
 
   deepEqual(actArr, expArr);
 });
+
+QUnit.test('u.array.fill', function() {
+  ok(u.array.fill);
+
+  var exp = [2, 2, 2];
+  var act = u.array.fill(3, 2);
+  deepEqual(act, exp);
+});
