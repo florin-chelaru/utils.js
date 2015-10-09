@@ -40,8 +40,10 @@ u.map = function(obj, callback, thisArg) {
 
   if (Array.isArray(obj)) { return obj.map(callback); }
 
+  var each = window['u']['each'];
+
   var ret = [];
-  u.each(obj, function(k, v) {
+  each(obj, function(k, v) {
     ret.push(callback.call(thisArg, v, k));
   });
 
