@@ -6,5 +6,4 @@
 
 goog.require('u.reflection.ReflectionException');
 
-/*goog.exportSymbol('u.reflection.ReflectionException', u.reflection.ReflectionException);*/
 goog.exportSymbol('reflection.ReflectionException', u.reflection.ReflectionException);

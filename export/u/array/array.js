@@ -6,9 +6,5 @@
 
 goog.require('u.array');
 
-/*
-goog.exportSymbol('u.array.fromArguments', u.array.fromArguments);
-goog.exportSymbol('u.array.fill', u.array.fill);
-*/
 goog.exportSymbol('array.fromArguments', u.array.fromArguments);
 goog.exportSymbol('array.fill', u.array.fill);
