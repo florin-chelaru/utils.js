@@ -6,5 +6,7 @@
 
 goog.require('u');
 
-goog.exportSymbol('u.each', u.each);
-goog.exportSymbol('u.map', u.map);
+/*goog.exportSymbol('u.each', u.each);
+goog.exportSymbol('u.map', u.map);*/
+goog.exportSymbol('each', u.each);
+goog.exportSymbol('map', u.map);

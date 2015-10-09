@@ -6,4 +6,5 @@
 
 goog.require('u.Exception');
 
-goog.exportSymbol('u.Exception', u.Exception);
+/*goog.exportSymbol('u.Exception', u.Exception);*/
+goog.exportSymbol('Exception', u.Exception);
