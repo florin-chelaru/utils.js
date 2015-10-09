@@ -29,7 +29,7 @@ u.each = function(obj, callback) {
 };
 
 /**
- * @param {Array|Object.<number|string, T>} obj
+ * @param {Array.<T>|Object.<number|string, T>} obj
  * @param {function(T, (number|string|undefined)): V} callback
  * @param {Object} [thisArg]
  * @returns {Array.<V>}
