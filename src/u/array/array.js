@@ -13,3 +13,16 @@ goog.provide('u.array');
 u.array.fromArguments = function(args) {
   return /** @type {Array} */ (Array.isArray(args) ? args : [].slice.apply(args));
 };
+
+/**
+ * Creates an array of length n filled with value
+ * @param {number} n
+ * @param {*} value
+ * @returns {Array}
+ */
+u.array.fill = function(n, value) {
+  n = n || 0;
+  var ret = new Array(n);
+  for (var i = 0; i < n; ++i) { ret[i] = value; }
+  return ret;
+};
