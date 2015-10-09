@@ -6,6 +6,6 @@
 
 goog.require('u.reflection');
 
-goog.exportSymbol('reflection.evaluateFullyQualifiedTypeName', u.reflection.evaluateFullyQualifiedTypeName);
-goog.exportSymbol('reflection.applyConstructor', u.reflection.applyConstructor);
+goog.exportSymbol('u.reflection.evaluateFullyQualifiedTypeName', u.reflection.evaluateFullyQualifiedTypeName);
+goog.exportSymbol('u.reflection.applyConstructor', u.reflection.applyConstructor);
 
