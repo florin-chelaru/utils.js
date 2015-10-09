@@ -27,3 +27,23 @@ u.each = function(obj, callback) {
 
   return obj;
 };
+
+/**
+ * @param {Array|Object.<number|string, T>} obj
+ * @param {function(T, (number|string|undefined)): V} callback
+ * @param {Object} [thisArg]
+ * @returns {Array.<V>}
+ * @template T, V
+ */
+u.map = function(obj, callback, thisArg) {
+  if (obj == undefined) { return []; }
+
+  if (Array.isArray(obj)) { return obj.map(callback); }
+
+  var ret = [];
+  u.each(obj, function(k, v) {
+    ret.push(callback.call(thisArg, v, k));
+  });
+
+  return ret;
+};

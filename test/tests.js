@@ -73,3 +73,22 @@ QUnit.test('u.array.fill', function() {
   var act = u.array.fill(3, 2);
   deepEqual(act, exp);
 });
+
+QUnit.test('u.map', function() {
+  ok(u.map);
+
+  var obj = {1: 'a', 'x': 'b', 'y': 2};
+  var exp = ['a1', 'b1', 3];
+  var act = u.map(obj, function(v) { return v + 1; });
+
+  deepEqual(act, exp);
+
+  var arr = ['a', 'b', 2];
+  act = u.map(arr, function(v) { return v + 1; });
+  deepEqual(act, exp);
+
+  obj[4] = 5;
+  exp = ['1a1', '451', 'xb1', 'y21'];
+  act = u.map(obj, function(v, k) { return k + v + 1; });
+  deepEqual(act, exp);
+});
