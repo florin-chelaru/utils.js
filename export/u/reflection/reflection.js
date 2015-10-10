@@ -8,4 +8,5 @@ goog.require('u.reflection');
 
 goog.exportSymbol('u.reflection.evaluateFullyQualifiedTypeName', u.reflection.evaluateFullyQualifiedTypeName);
 goog.exportSymbol('u.reflection.applyConstructor', u.reflection.applyConstructor);
+goog.exportSymbol('u.reflection.wrap', u.reflection.wrap);
 

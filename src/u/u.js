@@ -49,3 +49,36 @@ u.map = function(obj, callback, thisArg) {
 
   return ret;
 };
+
+/**
+ * Makes a shallow copy of the given object or array
+ * @param {Object|Array} obj
+ * @returns {Object|Array}
+ */
+u.copy = function(obj) {
+  if (obj == undefined) { return obj; }
+  if (Array.isArray(obj)) { return obj.slice(); }
+  var ret = {};
+  u.each(obj, function(k, v) { ret[k] = v; });
+  return ret;
+};
+
+/**
+ * @const {string}
+ */
+u.CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+/**
+ * @param {number} size
+ * @returns {string}
+ */
+u.generatePseudoGUID = function(size) {
+  var chars = u.CHARS;
+  var result = '';
+
+  for (var i = 0; i < size; ++i) {
+    result += chars[Math.round(Math.random() * (chars.length - 1))];
+  }
+
+  return result;
+};

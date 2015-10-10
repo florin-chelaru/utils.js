@@ -11,4 +11,6 @@ goog.require('u.Exception');
 goog.require('u.array');
 goog.require('u.reflection');
 goog.require('u.reflection.ReflectionException');
-
+goog.require('u.string');
+goog.require('u.math');
+goog.require('u.TimeSpan');

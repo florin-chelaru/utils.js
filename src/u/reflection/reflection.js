@@ -49,3 +49,14 @@ u.reflection.applyConstructor = function(ctor, params) {
   return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params))));
 };
 
+/**
+ * Wraps given type around the given object, so the object's prototype matches the one of the type
+ * @param {Object} o
+ * @param {function(new: T)} type
+ * @returns {T}
+ * @template T
+ */
+u.reflection.wrap = function(o, type) {
+  o.__proto__ = type.prototype;
+  return o;
+};

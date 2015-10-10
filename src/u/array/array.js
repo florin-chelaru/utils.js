@@ -26,3 +26,21 @@ u.array.fill = function(n, value) {
   for (var i = 0; i < n; ++i) { ret[i] = value; }
   return ret;
 };
+
+/**
+ * Generates an array of consecutive numbers starting from start, or 0 if it's not defined
+ * @param {number} n
+ * @param {number} [start]
+ * @returns {Array.<number>}
+ */
+u.array.range = function(n, start) {
+  start = start || 0;
+  n = n || 0;
+
+  var result = new Array(n);
+  for (var i = 0; i < n; ++i) {
+    result[i] = i + start;
+  }
+
+  return result;
+};
