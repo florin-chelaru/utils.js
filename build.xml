@@ -22,24 +22,6 @@
 
   <loadfile property="license" srcfile="LICENSE"/>
 
-<!--  <target name="deps" description="">
-    <exec executable="python" failonerror="true">
-      <arg line="${depswriter}"/>
-      <arg line="&#45;&#45;root_with_prefix=&quot;${src}/u ../../../../src/u&quot;"/>
-      <arg line="&#45;&#45;output_file=${depend}"/>
-    </exec>
-
-    <pathconvert property="srcfiles" pathsep=" ">
-      <map from="${rootdir}" to="&#45;&#45;js ."/>
-      <fileset dir="${src}" includes="**/*.js"/>
-    </pathconvert>
-
-    <pathconvert property="exportfiles" pathsep=" ">
-      <map from="${rootdir}" to="&#45;&#45;js ."/>
-      <fileset dir="${export}" includes="**/*.js"/>
-    </pathconvert>
-  </target>-->
-
   <target name="deps" description="">
     <exec executable="python" failonerror="true">
       <arg line="${depswriter}"/>

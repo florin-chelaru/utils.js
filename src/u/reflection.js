@@ -5,9 +5,27 @@
  */
 
 goog.provide('u.reflection');
-
-goog.require('u.reflection.ReflectionException');
 goog.require('u.array');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.reflection.ReflectionException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'ReflectionException';
+};
+
+goog.inherits(u.reflection.ReflectionException, u.Exception);
+
 
 /**
  * Evaluates the given string into a constructor for a type
