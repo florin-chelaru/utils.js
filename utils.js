@@ -74,137 +74,6 @@ u.array.unique = function(arr) {
 };
 
 
-goog.provide('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends Error
- */
-u.Exception = function(message, innerException) {
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._errorCore = new Error(message);
-
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._innerException = innerException || null;
-
-  /**
-   * @type {string}
-   */
-  this.message = this._errorCore.message;
-
-  /**
-   * @type {string}
-   */
-  this.name = 'Exception';
-};
-
-goog.inherits(u.Exception, Error);
-
-Object.defineProperties(u.Exception.prototype, {
-  /**
-   * @property
-   * @type {string}
-   * @name u.Exception#stack
-   */
-  'stack': /** @type {string} */ ({
-    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
-  }),
-
-  /**
-   * @property
-   * @type {Error}
-   * @name u.Exception#innerException
-   */
-  'innerException': /** @type {Error} */ ({
-    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
-  })
-});
-
-
-goog.provide('u.reflection');
-goog.require('u.array');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.reflection.ReflectionException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'ReflectionException';
-};
-
-goog.inherits(u.reflection.ReflectionException, u.Exception);
-
-
-/**
- * Evaluates the given string into a constructor for a type
- * @param {string} typeName
- * @returns {?function(new: T)}
- * @template T
- */
-u.reflection.evaluateFullyQualifiedTypeName = function(typeName) {
-  var result;
-
-  try {
-    var namespaces = typeName.split('.');
-    var func = namespaces.pop();
-    var context = window;
-    for (var i = 0; i < namespaces.length; ++i) {
-      context = context[namespaces[i]];
-    }
-    result = context[func];
-  } catch (error) {
-    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName, error);
-  }
-
-  if (typeof(result) !== 'function') {
-    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName);
-  }
-
-  return result;
-};
-
-/**
- * Applies the given constructor to the given parameters and creates
- * a new instance of the class it defines
- * @param {function(new: T)} ctor
- * @param {Array|Arguments} params
- * @returns {T}
- * @template T
- */
-u.reflection.applyConstructor = function(ctor, params) {
-  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params))));
-};
-
-/**
- * Wraps given type around the given object, so the object's prototype matches the one of the type
- * @param {Object} o
- * @param {function(new: T)} type
- * @returns {T}
- * @template T
- */
-u.reflection.wrap = function(o, type) {
-  o.__proto__ = type.prototype;
-  return o;
-};
-
-
 goog.provide('u.string');
 
 /**
@@ -214,6 +83,20 @@ goog.provide('u.string');
 u.string.capitalizeFirstLetter = function (text) {
   if (!text) { return text; }
   return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+
+goog.provide('u.math');
+
+/**
+ * @param {number} x
+ * @param {number} precision
+ * @returns {number}
+ */
+u.math.floorPrecision = function(x, precision) {
+  if (precision == 0) { return Math.floor(x); }
+  var m = Math.pow(10, precision);
+  return Math.floor(x * m) / m;
 };
 
 
@@ -384,6 +267,177 @@ u.Event.prototype.fire = function(args) {
   }
 
   this._firing = false;
+};
+
+
+goog.provide('u.Geolocation');
+
+/**
+ * @param {number} [lat]
+ * @param {number} [lng]
+ * @param {number} [zoom]
+ * @param {number} [range]
+ * @constructor
+ */
+u.Geolocation = function(lat, lng, zoom, range) {
+  /**
+   * @type {number}
+   */
+  this['lat'] = lat || 0;
+
+  /**
+   * @type {number}
+   */
+  this['lng'] = lng || 0;
+
+  /**
+   * @type {number}
+   */
+  this['zoom'] = zoom || 0;
+
+  /**
+   * @type {number}
+   */
+  this['range'] = range || 0;
+};
+
+/**
+ * @param {u.Geolocation|{lat: number, lng: number, zoom: number}} other
+ */
+u.Geolocation.prototype.equals = function(other) {
+  if (other == undefined) { return false; }
+  return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'] && this['range'] == other['range'];
+};
+
+
+goog.provide('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends Error
+ */
+u.Exception = function(message, innerException) {
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._errorCore = new Error(message);
+
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._innerException = innerException || null;
+
+  /**
+   * @type {string}
+   */
+  this.message = this._errorCore.message;
+
+  /**
+   * @type {string}
+   */
+  this.name = 'Exception';
+};
+
+goog.inherits(u.Exception, Error);
+
+Object.defineProperties(u.Exception.prototype, {
+  /**
+   * @property
+   * @type {string}
+   * @name u.Exception#stack
+   */
+  'stack': /** @type {string} */ ({
+    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
+  }),
+
+  /**
+   * @property
+   * @type {Error}
+   * @name u.Exception#innerException
+   */
+  'innerException': /** @type {Error} */ ({
+    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
+  })
+});
+
+
+goog.provide('u.reflection');
+goog.require('u.array');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.reflection.ReflectionException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'ReflectionException';
+};
+
+goog.inherits(u.reflection.ReflectionException, u.Exception);
+
+
+/**
+ * Evaluates the given string into a constructor for a type
+ * @param {string} typeName
+ * @returns {?function(new: T)}
+ * @template T
+ */
+u.reflection.evaluateFullyQualifiedTypeName = function(typeName) {
+  var result;
+
+  try {
+    var namespaces = typeName.split('.');
+    var func = namespaces.pop();
+    var context = window;
+    for (var i = 0; i < namespaces.length; ++i) {
+      context = context[namespaces[i]];
+    }
+    result = context[func];
+  } catch (error) {
+    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName, error);
+  }
+
+  if (typeof(result) !== 'function') {
+    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName);
+  }
+
+  return result;
+};
+
+/**
+ * Applies the given constructor to the given parameters and creates
+ * a new instance of the class it defines
+ * @param {function(new: T)} ctor
+ * @param {Array|Arguments} params
+ * @returns {T}
+ * @template T
+ */
+u.reflection.applyConstructor = function(ctor, params) {
+  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params))));
+};
+
+/**
+ * Wraps given type around the given object, so the object's prototype matches the one of the type
+ * @param {Object} o
+ * @param {function(new: T)} type
+ * @returns {T}
+ * @template T
+ */
+u.reflection.wrap = function(o, type) {
+  o.__proto__ = type.prototype;
+  return o;
 };
 
 
@@ -682,51 +736,3 @@ u.TimeSpan.prototype.toString = function() {
   return u.string.capitalizeFirstLetter(ret);
 };
 
-
-
-goog.provide('u.math');
-
-/**
- * @param {number} x
- * @param {number} precision
- * @returns {number}
- */
-u.math.floorPrecision = function(x, precision) {
-  if (precision == 0) { return Math.floor(x); }
-  var m = Math.pow(10, precision);
-  return Math.floor(x * m) / m;
-};
-
-
-goog.provide('u.Geolocation');
-
-/**
- * @param {number} [lat]
- * @param {number} [lng]
- * @param {number} [zoom]
- * @constructor
- */
-u.Geolocation = function(lat, lng, zoom) {
-  /**
-   * @type {number}
-   */
-  this['lat'] = lat || 0;
-
-  /**
-   * @type {number}
-   */
-  this['lng'] = lng || 0;
-
-  /**
-   * @type {number}
-   */
-  this['zoom'] = zoom || 0;
-};
-
-/**
- * @param {u.Geolocation|{lat: number, lng: number, zoom: number}} other
- */
-u.Geolocation.prototype.equals = function(other) {
-  if (other == undefined) { return false; }
-  return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'];
-};

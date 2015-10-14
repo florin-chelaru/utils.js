@@ -10,9 +10,10 @@ goog.provide('u.Geolocation');
  * @param {number} [lat]
  * @param {number} [lng]
  * @param {number} [zoom]
+ * @param {number} [range]
  * @constructor
  */
-u.Geolocation = function(lat, lng, zoom) {
+u.Geolocation = function(lat, lng, zoom, range) {
   /**
    * @type {number}
    */
@@ -27,6 +28,11 @@ u.Geolocation = function(lat, lng, zoom) {
    * @type {number}
    */
   this['zoom'] = zoom || 0;
+
+  /**
+   * @type {number}
+   */
+  this['range'] = range || 0;
 };
 
 /**
@@ -34,5 +40,5 @@ u.Geolocation = function(lat, lng, zoom) {
  */
 u.Geolocation.prototype.equals = function(other) {
   if (other == undefined) { return false; }
-  return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'];
+  return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'] && this['range'] == other['range'];
 };
