@@ -44,3 +44,17 @@ u.array.range = function(n, start) {
 
   return result;
 };
+
+/**
+ * Returns a new array where all elements are unique
+ * Complexity is suboptimal: O(n^2); for strings and numbers,
+ * it can be done faster, using a map
+ * @param {Array} arr
+ * @returns {Array}
+ */
+u.array.unique = function(arr) {
+  return arr.reduce(function(result, item) {
+    if (result.indexOf(item) < 0) { result.push(item); }
+    return result;
+  }, []);
+};

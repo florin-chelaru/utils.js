@@ -150,12 +150,24 @@ QUnit.test('u.array.fill', function(assert) {
   assert.deepEqual(act, exp);
 });
 
-QUnit.test('u.array.fill', function(assert) {
-  assert.ok(u.array.fill);
+QUnit.test('u.array.fromArguments', function(assert) {
+  ok(u.array.fromArguments);
 
-  var exp = [2, 2, 2];
-  var act = u.array.fill(3, 2);
-  assert.deepEqual(act, exp);
+  var params = [1, 'a', new u.Exception('my message')];
+  var args = (function () {
+    return arguments;
+  })(params[0], params[1], params[2]);
+
+  assert.deepEqual(params, u.array.fromArguments(args));
+});
+
+QUnit.test('u.array.unique', function(assert) {
+  ok(u.array.unique);
+
+  var e = new u.Exception('my message');
+  var arr = [1, 'a', e, e, e, 'a', 7, 'a', 'b', 1, 12];
+  var exp = [1, 'a', e, 7, 'b', 12];
+  assert.deepEqual(u.array.unique(arr), exp);
 });
 
 QUnit.test('u.reflection.evaluateFullyQualifiedTypeName', function(assert) {
