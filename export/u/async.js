@@ -27,6 +27,7 @@ try {
   goog.exportProperty(Deferred.prototype, 'callback', Deferred.prototype.callback);
   goog.exportProperty(Deferred.prototype, 'then', Deferred.prototype.then);
   goog.exportProperty(Deferred.prototype, 'chainDeferred', Deferred.prototype.chainDeferred);
+  goog.exportProperty(Deferred.prototype, 'hasFired', Deferred.prototype.hasFired);
   // TODO: Add other methods of interest
 
   // The same goes for the Promise class, that does not need to be declared explicitly
