@@ -9,9 +9,11 @@ goog.require('u.array');
 goog.require('goog.async.Deferred');
 goog.require('u.reflection');
 
-// For the uncompiled version, so our methods can find u.async.Deferred;
-// In the compiled version, this is replaced by either the embedded or existing version of goog.async.Deferred (see
-// /export/u/async.js for details).
+// The Google Closure compiler will embed a version of goog.async.Deferred into our library, but because it becomes
+// compiled, this does not have the same name or method names as the original one. Because of this, and the fact that we
+// do not want to enforce a dependency on the Google Closure library, we do the following: if the goog.async.Deferred
+// class already exists in the environment, we will use that throughout our code. Otherwise, we use the embedded
+// version.
 Object.defineProperties(u.async, {
   'Deferred': { get: /** @type {function (this: Object)} */ (function() {
     if (!this._deferredCtor) {
