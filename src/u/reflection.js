@@ -30,7 +30,7 @@ goog.inherits(u.reflection.ReflectionException, u.Exception);
 /**
  * Evaluates the given string into a constructor for a type
  * @param {string} typeName
- * @returns {?function(new: T)}
+ * @returns {function(new: T)}
  * @template T
  */
 u.reflection.evaluateFullyQualifiedTypeName = function(typeName) {
