@@ -46,7 +46,7 @@ u.async.for = function(n, iteration, inOrder) {
  */
 u.async.each = function(items, iteration, inOrder) {
   var Deferred = u.reflection.evaluateFullyQualifiedTypeName('u.async.Deferred');
-  var deferred = u.reflection.applyConstructor(Deferred, []);
+  var deferred = new Deferred();
 
   if (!items || !items.length) {
     deferred['callback']();
@@ -56,7 +56,7 @@ u.async.each = function(items, iteration, inOrder) {
   var d, remaining;
   if (inOrder) {
     d = new Array(items.length+1);
-    d[0] = u.reflection.applyConstructor(Deferred, []);
+    d[0] = new Deferred();
     d[0]['callback']();
   } else {
     remaining = items.length;
