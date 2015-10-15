@@ -14,7 +14,7 @@ goog.require('u.reflection');
 
 goog.require('goog.async.Deferred');
 
-var Deferred = null;
+/*var Deferred = null;
 try {
   // Try to use the version of goog.async.Deferred present in the environment
   Deferred = u.reflection.evaluateFullyQualifiedTypeName('goog.async.Deferred');
@@ -33,9 +33,9 @@ try {
   // The same goes for the Promise class, that does not need to be declared explicitly
   goog.exportProperty(goog.Promise.prototype, 'then', goog.Promise.prototype.then);
   // TODO: Add other methods of interest
-}
+}*/
 
-goog.exportSymbol('u.async.Deferred', Deferred);
+goog.exportSymbol('u.async', u.async);
 goog.exportSymbol('u.async.all', u.async.all);
 goog.exportSymbol('u.async.for', u.async.for);
 goog.exportSymbol('u.async.each', u.async.each);

@@ -13,7 +13,20 @@ goog.require('u.reflection');
 // In the compiled version, this is replaced by either the embedded or existing version of goog.async.Deferred (see
 // /export/u/async.js for details).
 Object.defineProperties(u.async, {
-  Deferred: { get: function() { return goog.async.Deferred; }}
+  'Deferred': { get: /** @type {function (this: Object)} */ (function() {
+    if (!this._deferredCtor) {
+      try {
+        this._deferredCtor = u.reflection.evaluateFullyQualifiedTypeName('goog.async.Deferred');
+      } catch (err) {
+        this._deferredCtor = goog.async.Deferred;
+        this._deferredCtor.prototype['then'] = goog.async.Deferred.prototype.then;
+        this._deferredCtor.prototype['callback'] = goog.async.Deferred.prototype.callback;
+        this._deferredCtor.prototype['chainDeferred'] = goog.async.Deferred.prototype.chainDeferred;
+        this._deferredCtor.prototype['hasFired'] = goog.async.Deferred.prototype.hasFired;
+      }
+    }
+    return this._deferredCtor;
+  })}
 });
 
 /**
