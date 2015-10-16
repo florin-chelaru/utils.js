@@ -29,6 +29,22 @@ u.async.for = function(n, iteration, inOrder) {
 };
 
 /**
+ * @param {function(number): Promise} iteration
+ * @returns {Promise}
+ */
+u.async.do = function(iteration) {
+  return new Promise(function(resolve, reject) {
+    var i = 0;
+    var it = function() {
+      return iteration(i++).then(function(condition) {
+        return !condition || it();
+      });
+    };
+    it().then(resolve);
+  });
+};
+
+/**
  * @param {Array.<T>} items
  * @param {function(T, number): Promise} iteration
  * @param {boolean} [inOrder]

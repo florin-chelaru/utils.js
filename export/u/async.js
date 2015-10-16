@@ -10,3 +10,4 @@ goog.require('u.reflection');
 goog.exportSymbol('u.async.all', u.async.all);
 goog.exportSymbol('u.async.for', u.async.for);
 goog.exportSymbol('u.async.each', u.async.each);
+goog.exportSymbol('u.async.do', u.async.do);

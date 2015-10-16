@@ -360,3 +360,33 @@ QUnit.test('u.async.all [parallel]', function(assert) {
     if (!finished) { done(); finished = true; }
   }, 15000);
 });
+
+QUnit.test('u.async.do', function(assert) {
+  var done = assert.async();
+  assert.ok(u.async.do);
+
+  var finished = false;
+  var n = 100;
+  var exp = u.array.range(n);
+  var act = [];
+
+  u.async.do(function(i) {
+    return new Promise(function(resolve, reject) {
+      setTimeout(function () {
+        act.push(i);
+        resolve(i + 1 < n);
+      }, RAND[i]);
+    });
+  }).then(function() {
+      if (!finished) {
+        assert.deepEqual(act, exp);
+        finished = true;
+        done();
+      }
+    });
+
+  setTimeout(function() {
+    assert.ok(finished, 'Timed out');
+    if (!finished) { done(); finished = true; }
+  }, 15000);
+});
