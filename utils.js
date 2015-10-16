@@ -18,6 +18,61 @@
 */
 
 
+goog.provide('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends Error
+ */
+u.Exception = function(message, innerException) {
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._errorCore = new Error(message);
+
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._innerException = innerException || null;
+
+  /**
+   * @type {string}
+   */
+  this.message = this._errorCore.message;
+
+  /**
+   * @type {string}
+   */
+  this.name = 'Exception';
+};
+
+goog.inherits(u.Exception, Error);
+
+Object.defineProperties(u.Exception.prototype, {
+  /**
+   * @property
+   * @type {string}
+   * @name u.Exception#stack
+   */
+  'stack': /** @type {string} */ ({
+    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
+  }),
+
+  /**
+   * @property
+   * @type {Error}
+   * @name u.Exception#innerException
+   */
+  'innerException': /** @type {Error} */ ({
+    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
+  })
+});
+
+
 goog.provide('u.array');
 
 /**
@@ -72,61 +127,6 @@ u.array.unique = function(arr) {
     return result;
   }, []);
 };
-
-
-goog.provide('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends Error
- */
-u.Exception = function(message, innerException) {
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._errorCore = new Error(message);
-
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._innerException = innerException || null;
-
-  /**
-   * @type {string}
-   */
-  this.message = this._errorCore.message;
-
-  /**
-   * @type {string}
-   */
-  this.name = 'Exception';
-};
-
-goog.inherits(u.Exception, Error);
-
-Object.defineProperties(u.Exception.prototype, {
-  /**
-   * @property
-   * @type {string}
-   * @name u.Exception#stack
-   */
-  'stack': /** @type {string} */ ({
-    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
-  }),
-
-  /**
-   * @property
-   * @type {Error}
-   * @name u.Exception#innerException
-   */
-  'innerException': /** @type {Error} */ ({
-    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
-  })
-});
 
 
 goog.provide('u.reflection');
@@ -202,96 +202,6 @@ u.reflection.applyConstructor = function(ctor, params) {
 u.reflection.wrap = function(o, type) {
   o.__proto__ = type.prototype;
   return o;
-};
-
-
-goog.provide('u.async');
-goog.require('u.array');
-goog.require('goog.async.Deferred');
-goog.require('u.reflection');
-
-// For the uncompiled version, so our methods can find u.async.Deferred;
-// In the compiled version, this is replaced by either the embedded or existing version of goog.async.Deferred (see
-// /export/u/async.js for details).
-Object.defineProperties(u.async, {
-  'Deferred': { get: /** @type {function (this: Object)} */ (function() {
-    if (!this._deferredCtor) {
-      try {
-        this._deferredCtor = u.reflection.evaluateFullyQualifiedTypeName('goog.async.Deferred');
-      } catch (err) {
-        this._deferredCtor = goog.async.Deferred;
-        this._deferredCtor.prototype['then'] = goog.async.Deferred.prototype.then;
-        this._deferredCtor.prototype['callback'] = goog.async.Deferred.prototype.callback;
-        this._deferredCtor.prototype['chainDeferred'] = goog.async.Deferred.prototype.chainDeferred;
-        this._deferredCtor.prototype['hasFired'] = goog.async.Deferred.prototype.hasFired;
-      }
-    }
-    return this._deferredCtor;
-  })}
-});
-
-/**
- * @param {Array.<function(): goog.async.Deferred>} jobs
- * @param {boolean} [inOrder] If true, the jobs are executed in order, otherwise, in parallel
- * @returns {goog.async.Deferred}
- */
-u.async.all = function(jobs, inOrder) {
-  return u.async.each(jobs, function(job) {
-    return job.call(null);
-  }, inOrder);
-};
-
-/**
- * @param {number} n
- * @param {function(number, (number|undefined)): goog.async.Deferred} iteration
- * @param {boolean} [inOrder]
- * @returns {goog.async.Deferred}
- */
-u.async.for = function(n, iteration, inOrder) {
-  return u.async.each(u.array.range(n), iteration, inOrder);
-};
-
-/**
- * @param {Array.<T>} items
- * @param {function(T, (number|undefined)): goog.async.Deferred} iteration
- * @param {boolean} [inOrder]
- * @returns {goog.async.Deferred}
- * @template T
- */
-u.async.each = function(items, iteration, inOrder) {
-  var Deferred = u.reflection.evaluateFullyQualifiedTypeName('u.async.Deferred');
-  var deferred = new Deferred();
-
-  if (!items || !items.length) {
-    deferred['callback']();
-    return deferred;
-  }
-
-  var d, remaining;
-  if (inOrder) {
-    d = new Array(items.length+1);
-    d[0] = new Deferred();
-    d[0]['callback']();
-  } else {
-    remaining = items.length;
-  }
-  items.forEach(function(item, i) {
-    if (inOrder) {
-      d[i + 1] = d[i]['then'](function() { return iteration.call(null, item, i); });
-    } else {
-      iteration.call(null, item, i)
-        ['then'](function() {
-          --remaining;
-          if (!remaining) { deferred['callback'](); }
-        });
-    }
-  });
-
-  if (inOrder) {
-    d[items.length]['then'](function() { deferred['callback'](); });
-  }
-
-  return deferred;
 };
 
 
@@ -372,6 +282,190 @@ u.generatePseudoGUID = function(size) {
   }
 
   return result;
+};
+
+
+goog.provide('u.EventListener');
+
+/**
+ * @param {function(T)} callback
+ * @param {Object} [thisArg]
+ * @constructor
+ * @template T
+ */
+u.EventListener = function(callback, thisArg) {
+  /**
+   * @type {number}
+   * @private
+   */
+  this._id = ++u.EventListener._lastId;
+
+  /**
+   * @type {function(T)}
+   * @private
+   */
+  this._callback = callback;
+
+  /**
+   * @type {Object|undefined}
+   * @private
+   */
+  this._thisArg = thisArg;
+};
+
+u.EventListener._lastId = -1;
+
+/**
+ * @param {T} [args]
+ */
+u.EventListener.prototype.fire = function(args) {
+  this._callback.call(this._thisArg, args);
+};
+
+/**
+ * @type {number}
+ * @name u.EventListener#id
+ */
+u.EventListener.prototype.id;
+
+Object.defineProperties(u.EventListener.prototype, {
+  'id': { get: /** @type {function (this:u.EventListener)} */ (function() { return this._id; })}
+});
+
+
+goog.provide('u.Event');
+
+goog.require('u.EventListener');
+
+/**
+ * @param {{synchronous: (boolean|undefined), timeout: (function(Function, number)|undefined)}} [options]
+ * @constructor
+ * @template T
+ */
+u.Event = function(options) {
+
+  /**
+   * @type {boolean}
+   * @private
+   */
+  this._synchronous = options ? !!options.synchronous : false;
+
+  /**
+   * @type {number}
+   * @private
+   */
+  this._count = 0;
+
+  /**
+   * @type {Object.<number, u.EventListener.<T>>}
+   * @private
+   */
+  this._listeners = {};
+
+  /**
+   * Set to true when in the notify() method, to avoid infinite loops.
+   * This is only used when the events are synchronous
+   * @type {boolean}
+   * @private
+   */
+  this._firing = false;
+
+  /**
+   * @type {function(Function, number)}
+   * @private
+   */
+  this._timeout = (options && options.timeout) ? options.timeout : setTimeout;
+};
+
+/**
+ * @type {boolean}
+ * @name u.Event#synchronous
+ */
+u.Event.prototype.synchronous;
+
+/**
+ * @type {boolean}
+ * @name u.Event#firing
+ */
+u.Event.prototype.firing;
+
+Object.defineProperties(u.Event.prototype, {
+  'synchronous': { get: /** @type {function (this:u.Event)} */ (function() { return this._synchronous; })},
+  'firing': { get: /** @type {function (this:u.Event)} */ (function() { return this._firing; })}
+});
+
+/**
+ * @param {u.EventListener.<T>|function(T)} listener
+ * @param {Object} [thisArg]
+ * @returns {u.EventListener.<T>}
+ */
+u.Event.prototype.addListener = function(listener, thisArg) {
+  if (typeof(listener) == 'function') {
+    listener = new u.EventListener(listener, thisArg);
+  }
+
+  if (!this._listeners[listener['id']]) { ++this._count; }
+  this._listeners[listener['id']] = listener;
+
+  return listener;
+};
+
+/**
+ * @param {u.EventListener.<T>} listener
+ */
+u.Event.prototype.removeListener = function(listener) {
+  if (!this._listeners[listener['id']]) { return; }
+
+  delete this._listeners[listener['id']];
+  --this._count;
+};
+
+/**
+ * @param {T} [args]
+ */
+u.Event.prototype.fire = function(args) {
+  if (this._firing) { return; }
+
+  var self = this;
+  var timeout = this._timeout;
+  var synchronous = this._synchronous;
+  var doFire = function() {
+    if (self._count == 0) { return; }
+
+    self._firing = synchronous;
+
+    u.each(self._listeners, function(id, listener) {
+      if (!synchronous) {
+        timeout.call(null, function() {
+          listener.fire(args);
+        }, 0);
+      } else {
+        listener.fire(args);
+      }
+    });
+  };
+
+  if (synchronous) {
+    doFire();
+  } else {
+    timeout.call(null, doFire, 0);
+  }
+
+  this._firing = false;
+};
+
+
+goog.provide('u.math');
+
+/**
+ * @param {number} x
+ * @param {number} precision
+ * @returns {number}
+ */
+u.math.floorPrecision = function(x, precision) {
+  if (precision == 0) { return Math.floor(x); }
+  var m = Math.pow(10, precision);
+  return Math.floor(x * m) / m;
 };
 
 
@@ -592,18 +686,6 @@ u.TimeSpan.prototype.toString = function() {
 
 
 
-goog.provide('u.string');
-
-/**
- * @param {string} text
- * @returns {string}
- */
-u.string.capitalizeFirstLetter = function (text) {
-  if (!text) { return text; }
-  return text.charAt(0).toUpperCase() + text.slice(1);
-};
-
-
 goog.provide('u.Geolocation');
 
 /**
@@ -644,185 +726,69 @@ u.Geolocation.prototype.equals = function(other) {
 };
 
 
-goog.provide('u.math');
+goog.provide('u.async');
+goog.require('u.array');
+goog.require('u.reflection');
 
 /**
- * @param {number} x
- * @param {number} precision
- * @returns {number}
+ * @param {Array.<function(): Promise>} jobs
+ * @param {boolean} [inOrder] If true, the jobs are executed in order, otherwise, in parallel
+ * @returns {Promise}
  */
-u.math.floorPrecision = function(x, precision) {
-  if (precision == 0) { return Math.floor(x); }
-  var m = Math.pow(10, precision);
-  return Math.floor(x * m) / m;
+u.async.all = function(jobs, inOrder) {
+  if (inOrder) {  return u.async.each(jobs, function(job) { return job(); }, inOrder); }
+  return Promise.all(jobs.map(function(job) { return job(); }));
 };
 
-
-goog.provide('u.EventListener');
+/**
+ * @param {number} n
+ * @param {function(number, (number|undefined)): Promise} iteration
+ * @param {boolean} [inOrder]
+ * @returns {Promise}
+ */
+u.async.for = function(n, iteration, inOrder) {
+  return u.async.each(u.array.range(n), iteration, inOrder);
+};
 
 /**
- * @param {function(T)} callback
- * @param {Object} [thisArg]
- * @constructor
+ * @param {Array.<T>} items
+ * @param {function(T, number): Promise} iteration
+ * @param {boolean} [inOrder]
+ * @returns {Promise}
  * @template T
  */
-u.EventListener = function(callback, thisArg) {
-  /**
-   * @type {number}
-   * @private
-   */
-  this._id = ++u.EventListener._lastId;
-
-  /**
-   * @type {function(T)}
-   * @private
-   */
-  this._callback = callback;
-
-  /**
-   * @type {Object|undefined}
-   * @private
-   */
-  this._thisArg = thisArg;
-};
-
-u.EventListener._lastId = -1;
-
-/**
- * @param {T} [args]
- */
-u.EventListener.prototype.fire = function(args) {
-  this._callback.call(this._thisArg, args);
-};
-
-/**
- * @type {number}
- * @name u.EventListener#id
- */
-u.EventListener.prototype.id;
-
-Object.defineProperties(u.EventListener.prototype, {
-  'id': { get: /** @type {function (this:u.EventListener)} */ (function() { return this._id; })}
-});
-
-
-goog.provide('u.Event');
-
-goog.require('u.EventListener');
-
-/**
- * @param {{synchronous: (boolean|undefined), timeout: (function(Function, number)|undefined)}} [options]
- * @constructor
- * @template T
- */
-u.Event = function(options) {
-
-  /**
-   * @type {boolean}
-   * @private
-   */
-  this._synchronous = options ? !!options.synchronous : false;
-
-  /**
-   * @type {number}
-   * @private
-   */
-  this._count = 0;
-
-  /**
-   * @type {Object.<number, u.EventListener.<T>>}
-   * @private
-   */
-  this._listeners = {};
-
-  /**
-   * Set to true when in the notify() method, to avoid infinite loops.
-   * This is only used when the events are synchronous
-   * @type {boolean}
-   * @private
-   */
-  this._firing = false;
-
-  /**
-   * @type {function(Function, number)}
-   * @private
-   */
-  this._timeout = (options && options.timeout) ? options.timeout : setTimeout;
-};
-
-/**
- * @type {boolean}
- * @name u.Event#synchronous
- */
-u.Event.prototype.synchronous;
-
-/**
- * @type {boolean}
- * @name u.Event#firing
- */
-u.Event.prototype.firing;
-
-Object.defineProperties(u.Event.prototype, {
-  'synchronous': { get: /** @type {function (this:u.Event)} */ (function() { return this._synchronous; })},
-  'firing': { get: /** @type {function (this:u.Event)} */ (function() { return this._firing; })}
-});
-
-/**
- * @param {u.EventListener.<T>|function(T)} listener
- * @param {Object} [thisArg]
- * @returns {u.EventListener.<T>}
- */
-u.Event.prototype.addListener = function(listener, thisArg) {
-  if (typeof(listener) == 'function') {
-    listener = new u.EventListener(listener, thisArg);
-  }
-
-  if (!this._listeners[listener['id']]) { ++this._count; }
-  this._listeners[listener['id']] = listener;
-
-  return listener;
-};
-
-/**
- * @param {u.EventListener.<T>} listener
- */
-u.Event.prototype.removeListener = function(listener) {
-  if (!this._listeners[listener['id']]) { return; }
-
-  delete this._listeners[listener['id']];
-  --this._count;
-};
-
-/**
- * @param {T} [args]
- */
-u.Event.prototype.fire = function(args) {
-  if (this._firing) { return; }
-
-  var self = this;
-  var timeout = this._timeout;
-  var synchronous = this._synchronous;
-  var doFire = function() {
-    if (self._count == 0) { return; }
-
-    self._firing = synchronous;
-
-    u.each(self._listeners, function(id, listener) {
-      if (!synchronous) {
-        timeout.call(null, function() {
-          listener.fire(args);
-        }, 0);
-      } else {
-        listener.fire(args);
+u.async.each = function(items, iteration, inOrder) {
+  if (inOrder) {
+    return new Promise(function(resolve, reject) {
+      if (!items || !items.length) {
+        resolve();
       }
+
+      var d, remaining;
+      var initialResolve;
+      d = new Array(items.length+1);
+      d[0] = new Promise(function(resolve) { initialResolve = resolve; });
+      initialResolve();
+
+      items.forEach(function(item, i) {
+        d[i + 1] = d[i].then(function() { return iteration.call(null, item, i); });
+      });
+
+      d[items.length].then(resolve);
     });
-  };
-
-  if (synchronous) {
-    doFire();
   } else {
-    timeout.call(null, doFire, 0);
+    return Promise.all(items.map(function(item, i) { return iteration(item, i); }));
   }
+};
 
-  this._firing = false;
+
+goog.provide('u.string');
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+u.string.capitalizeFirstLetter = function (text) {
+  if (!text) { return text; }
+  return text.charAt(0).toUpperCase() + text.slice(1);
 };

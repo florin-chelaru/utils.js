@@ -2,7 +2,7 @@
 // Please do not edit.
 goog.addDependency('../../../../src/u/__namespace__.js', ['u.__namespace__'], ['u', 'u.Event', 'u.Exception', 'u.Geolocation', 'u.TimeSpan', 'u.array', 'u.async', 'u.math', 'u.reflection', 'u.string'], false);
 goog.addDependency('../../../../src/u/array.js', ['u.array'], [], false);
-goog.addDependency('../../../../src/u/async.js', ['u.async'], ['goog.async.Deferred', 'u.array', 'u.reflection'], false);
+goog.addDependency('../../../../src/u/async.js', ['u.async'], ['u.array', 'u.reflection'], false);
 goog.addDependency('../../../../src/u/event-listener.js', ['u.EventListener'], [], false);
 goog.addDependency('../../../../src/u/event.js', ['u.Event'], ['u.EventListener'], false);
 goog.addDependency('../../../../src/u/exception.js', ['u.Exception'], [], false);

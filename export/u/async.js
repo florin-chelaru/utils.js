@@ -7,8 +7,6 @@
 goog.require('u.async');
 goog.require('u.reflection');
 
-// This contains the property Deferred, which corresponds to a lazy initialization constructor
-goog.exportSymbol('u.async', u.async);
 goog.exportSymbol('u.async.all', u.async.all);
 goog.exportSymbol('u.async.for', u.async.for);
 goog.exportSymbol('u.async.each', u.async.each);

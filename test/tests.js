@@ -4,8 +4,6 @@
  * Time: 2:38 PM
  */
 
-goog.require('goog.async.Deferred');
-
 QUnit.test('u.Exception', function(assert) {
   assert.ok(u.Exception);
 
@@ -182,7 +180,12 @@ QUnit.test('u.reflection.applyConstructor', function(assert) {
   assert.ok(u.reflection.applyConstructor);
 
   var inner = Error('something');
-  assert.deepEqual(u.reflection.applyConstructor(u.Exception, ['my new message', inner]), new u.Exception('my new message', inner));
+  var act = u.reflection.applyConstructor(u.Exception, ['my new message', inner]);
+  var exp = new u.Exception('my new message', inner);
+
+  assert.ok(act instanceof u.Exception);
+  assert.equal(act.message, 'my new message');
+  assert.equal(act.innerException, inner);
 });
 
 QUnit.test('u.reflection.wrap', function(assert) {
@@ -233,18 +236,17 @@ QUnit.test('u.async.for [sequential]', function(assert) {
   assert.ok(u.async.for);
 
   var finished = false;
-  var n = RAND.length;
+  var n = 100;
   var exp = u.array.range(n);
 
   var act = [];
   u.async.for(n, function(i) {
-    var deferred = new goog.async.Deferred();
-    // var deferred = new u.async.Deferred();
-    setTimeout(function() {
-      act.push(i);
-      deferred.callback();
-    }, RAND[i]);
-    return deferred;
+    return new Promise(function(resolve, reject) {
+      setTimeout(function () {
+        act.push(i);
+        resolve();
+      }, RAND[i]);
+    });
   }, true)
     .then(function() {
       if (!finished) {
@@ -265,18 +267,17 @@ QUnit.test('u.async.for [parallel]', function(assert) {
   assert.ok(u.async.for);
 
   var finished = false;
-  var n = RAND.length;
+  var n = 100;
   var exp = u.array.range(n);
 
   var act = [];
   u.async.for(n, function(i) {
-    var deferred = new goog.async.Deferred();
-    // var deferred = new u.async.Deferred();
-    setTimeout(function() {
-      act.push(i);
-      deferred.callback();
-    }, RAND[i]);
-    return deferred;
+    return new Promise(function(resolve, reject) {
+      setTimeout(function() {
+        act.push(i);
+        resolve();
+      }, RAND[i]);
+    });
   }, false)
     .then(function() {
       if (!finished) {
@@ -298,18 +299,17 @@ QUnit.test('u.async.all [sequential]', function(assert) {
   assert.ok(u.async.all);
 
   var finished = false;
-  var n = RAND.length;
+  var n = 100;
 
   var exp = u.array.range(n);
   var act = [];
   var jobs = exp.map(function(i) { return function() {
-    var d = new goog.async.Deferred();
-    // var d = new u.async.Deferred();
-    setTimeout(function() {
-      act.push(i);
-      d.callback();
-    }, RAND[i]);
-    return d;
+    return new Promise(function(resolve, reject) {
+      setTimeout(function () {
+        act.push(i);
+        resolve();
+      }, RAND[i]);
+    });
   }; });
 
   u.async.all(jobs, true)
@@ -332,18 +332,17 @@ QUnit.test('u.async.all [parallel]', function(assert) {
   assert.ok(u.async.all);
 
   var finished = false;
-  var n = RAND.length;
+  var n = 100;
 
   var exp = u.array.range(n);
   var act = [];
   var jobs = exp.map(function(i) { return function() {
-    var d = new goog.async.Deferred();
-    // var d = new u.async.Deferred();
-    setTimeout(function() {
-      act.push(i);
-      d.callback();
-    }, RAND[i]);
-    return d;
+    return new Promise(function(resolve, reject) {
+      setTimeout(function () {
+        act.push(i);
+        resolve();
+      }, RAND[i]);
+    });
   }; });
 
   u.async.all(jobs, false)
