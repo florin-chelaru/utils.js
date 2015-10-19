@@ -10,3 +10,5 @@ goog.exportSymbol('u.each', u.each);
 goog.exportSymbol('u.map', u.map);
 goog.exportSymbol('u.copy', u.copy);
 goog.exportSymbol('u.generatePseudoGUID', u.generatePseudoGUID);
+goog.exportSymbol('u.get', u.get);
+goog.exportSymbol('u.lessConsts', u.lessConsts);

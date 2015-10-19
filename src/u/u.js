@@ -82,3 +82,51 @@ u.generatePseudoGUID = function(size) {
 
   return result;
 };
+
+/**
+ * Lightweight version of ajax GET request with minimal error handling
+ * @param {string} uri
+ * @returns {Promise}
+ */
+u.get = function(uri) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', uri, true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        if (xhr.status !== 200) {
+          reject('Request failed with error code ' + xhr.status);
+        } else {
+          resolve(xhr.responseText);
+        }
+      }
+    };
+    xhr.send();
+  });
+};
+
+/**
+ * @param {{uri: (string|undefined), content: (string|undefined)}} opts
+ * @returns {Promise} Promise.<Object.<string, string>>
+ */
+u.lessConsts = function(opts) {
+  return new Promise(function(resolve, reject) {
+    if (!opts || (!opts['content'] && !opts['uri'])) { resolve({}); return; }
+    if (!opts['content']) {
+      u.get(opts['uri'])
+        .then(function(content) {
+          return u.lessConsts({content: content});
+        })
+        .then(resolve);
+      return;
+    }
+
+    var pairs = opts['content'].split(';')
+      .filter(function(line) { return line.trim().length > 0; })
+      .map(function(line) {
+        return line.trim().split(':').map(function(token) { return token.trim(); })});
+    var ret = {};
+    pairs.forEach(function(pair) { ret[pair[0].substr(1)] = pair[1]; });
+    resolve(ret);
+  });
+};

@@ -135,6 +135,48 @@ QUnit.test('u.generatePseudoGUID', function(assert) {
   assert.notOk(u.generatePseudoGUID(6) == u.generatePseudoGUID(6));
 });
 
+QUnit.test('u.get', function(assert) {
+  var done = assert.async();
+  assert.ok(u.get);
+
+  var exp = '@transition-speed: 0.5s;\n' +
+            '@light-gray: #ddd;\n' +
+            '@medium-gray: #808080;\n' +
+            '@dark-gray: #494949;\n' +
+            '@transparent-light-gray: rgba(0, 0, 0, 0.025);\n' +
+            '@transparent-gray: rgba(0, 0, 0, 0.05);\n' +
+            '@transparent-dark-gray: rgba(0, 0, 0, 0.075);\n' +
+            '@item-max-height: 120px;\n';
+
+  u.get('http://gist.githubusercontent.com/florin-chelaru/623906a978210e68b03f/raw/d764a7553518ba53728ddfccdde5a658c415cd31/variables.less')
+    .then(function(act) {
+      assert.equal(act, exp);
+      done();
+    });
+});
+
+QUnit.test('u.lessConsts', function(assert) {
+  var done = assert.async();
+  assert.ok(u.lessConsts);
+
+  var exp = {
+    'transition-speed':       '0.5s',
+    'light-gray':             '#ddd',
+    'medium-gray':            '#808080',
+    'dark-gray':              '#494949',
+    'transparent-light-gray': 'rgba(0, 0, 0, 0.025)',
+    'transparent-gray':       'rgba(0, 0, 0, 0.05)',
+    'transparent-dark-gray':  'rgba(0, 0, 0, 0.075)',
+    'item-max-height':        '120px'
+  };
+
+  u.lessConsts({uri: 'http://gist.githubusercontent.com/florin-chelaru/623906a978210e68b03f/raw/d764a7553518ba53728ddfccdde5a658c415cd31/variables.less'})
+    .then(function(act) {
+      assert.deepEqual(act, exp);
+      done();
+    });
+});
+
 QUnit.test('u.array.range', function(assert) {
   assert.ok(u.array.range);
 
