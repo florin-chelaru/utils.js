@@ -13,6 +13,31 @@ QUnit.test('u.Exception', function(assert) {
   assert.equal(e.name, 'Exception');
   assert.ok(e.stack);
   assert.deepEqual(e.innerException, inner);
+  assert.ok(e instanceof Error);
+});
+
+QUnit.test('u.AbstractMethodException', function(assert) {
+  assert.ok(u.AbstractMethodException);
+
+  var inner = Error('another message');
+  var e = new u.AbstractMethodException('my message', inner);
+  assert.equal(e.message, 'my message');
+  assert.equal(e.name, 'AbstractMethodException');
+  assert.ok(e.stack);
+  assert.deepEqual(e.innerException, inner);
+  assert.ok(e instanceof Error);
+});
+
+QUnit.test('u.UnimplementedException', function(assert) {
+  assert.ok(u.UnimplementedException);
+
+  var inner = Error('another message');
+  var e = new u.UnimplementedException('my message', inner);
+  assert.equal(e.message, 'my message');
+  assert.equal(e.name, 'UnimplementedException');
+  assert.ok(e.stack);
+  assert.deepEqual(e.innerException, inner);
+  assert.ok(e instanceof Error);
 });
 
 QUnit.test('u.TimeSpan', function(assert) {
