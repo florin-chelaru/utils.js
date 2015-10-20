@@ -74,3 +74,60 @@ u.async.each = function(items, iteration, inOrder) {
     return Promise.all(items.map(function(item, i) { return iteration(item, i); }));
   }
 };
+
+/**
+ * @constructor
+ * @template T
+ */
+u.async.Deferred = function() {
+  /**
+   * @type {Function}
+   * @private
+   */
+  this._resolve = null;
+
+  /**
+   * @type {Function}
+   * @private
+   */
+  this._reject = null;
+
+  var self = this;
+
+  /**
+   * @type {Promise}
+   * @private
+   */
+  this._promise = new Promise(function() { self._resolve = arguments[0]; self._reject = arguments[1]; });
+};
+
+/**
+ * @param {T} [value]
+ */
+u.async.Deferred.prototype.resolve = function(value) {
+  this._resolve.call(this._promise, value);
+};
+
+/**
+ * @param {*} [reason]
+ */
+u.async.Deferred.prototype.reject = function(reason) {
+  this._reject.call(this._promise, reason);
+};
+
+/**
+ * @param {function((T|undefined))} [onFulfilled]
+ * @param {function(*)} [onRejected]
+ * @returns {Promise}
+ */
+u.async.Deferred.prototype.then = function(onFulfilled, onRejected) {
+  return this._promise.then(onFulfilled, onRejected);
+};
+
+/**
+ * @param {function(*)} onRejected
+ * @returns {Promise}
+ */
+u.async.Deferred.prototype.catch = function(onRejected) {
+  return this._promise.catch(onRejected);
+};

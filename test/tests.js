@@ -457,3 +457,35 @@ QUnit.test('u.async.do', function(assert) {
     if (!finished) { done(); finished = true; }
   }, 15000);
 });
+
+QUnit.test('u.async.Deferred', function(assert) {
+  var done = assert.async();
+  assert.ok(u.async.Deferred);
+
+  var finished = false;
+
+  var d = new u.async.Deferred();
+  var act = null;
+  var exp = 'something';
+  d.then(function(value) {
+    if (!finished) {
+      act = value;
+      assert.equal(act, exp);
+      finished = true;
+      done();
+    }
+  });
+  setTimeout(function() {
+    d.resolve('something');
+  }, 100);
+
+  setTimeout(function() {
+    assert.notOk(finished);
+    assert.notOk(act);
+  }, 50);
+
+  setTimeout(function() {
+    assert.ok(finished, 'Timed out');
+    if (!finished) { done(); finished = true; }
+  }, 200);
+});
