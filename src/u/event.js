@@ -60,9 +60,17 @@ u.Event.prototype.synchronous;
  */
 u.Event.prototype.firing;
 
+/**
+ * Gets the number of listeners register for the event
+ * @type {number}
+ * @name u.Event#count
+ */
+u.Event.prototype.count;
+
 Object.defineProperties(u.Event.prototype, {
   'synchronous': { get: /** @type {function (this:u.Event)} */ (function() { return this._synchronous; })},
-  'firing': { get: /** @type {function (this:u.Event)} */ (function() { return this._firing; })}
+  'firing': { get: /** @type {function (this:u.Event)} */ (function() { return this._firing; })},
+  'count': { get: /** @type {function (this:u.Event)} */ (function() { return this._count; })}
 });
 
 /**

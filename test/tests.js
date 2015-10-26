@@ -27,14 +27,19 @@ QUnit.test('Promise', function(assert) {
     });
 
 
-  /*setTimeout(function() {
+  setTimeout(function() {
     assert.notOk(finished);
     assert.notOk(act);
-  }, 50);*/
+  }, 50);
 
   setTimeout(function() {
-    assert.ok(finished, 'Timed out');
-    if (!finished) { done(); finished = true; }
+    if (!finished) {
+      assert.ok(finished, 'Timed out');
+      if (!finished) {
+        done();
+        finished = true;
+      }
+    }
   }, 200);
 });
 
