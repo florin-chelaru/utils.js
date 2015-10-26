@@ -4,6 +4,40 @@
  * Time: 2:38 PM
  */
 
+QUnit.test('Promise', function(assert) {
+  var done = assert.async();
+  assert.ok(Promise);
+
+  var finished = false;
+
+  var act = null;
+  var exp = 'something';
+  var p = new Promise(function(resolve, reject) {
+    setTimeout(function() {
+      console.log('called resolve');
+      resolve('something');
+    }, 100);
+  }).then(function(value) {
+      if (!finished) {
+        act = value;
+        assert.equal(act, exp);
+        finished = true;
+        done();
+      }
+    });
+
+
+  /*setTimeout(function() {
+    assert.notOk(finished);
+    assert.notOk(act);
+  }, 50);*/
+
+  setTimeout(function() {
+    assert.ok(finished, 'Timed out');
+    if (!finished) { done(); finished = true; }
+  }, 200);
+});
+
 QUnit.test('u.Exception', function(assert) {
   assert.ok(u.Exception);
 
@@ -11,7 +45,6 @@ QUnit.test('u.Exception', function(assert) {
   var e = new u.Exception('my message', inner);
   assert.equal(e.message, 'my message');
   assert.equal(e.name, 'Exception');
-  assert.ok(e.stack);
   assert.deepEqual(e.innerException, inner);
   assert.ok(e instanceof Error);
 });
@@ -23,7 +56,6 @@ QUnit.test('u.AbstractMethodException', function(assert) {
   var e = new u.AbstractMethodException('my message', inner);
   assert.equal(e.message, 'my message');
   assert.equal(e.name, 'AbstractMethodException');
-  assert.ok(e.stack);
   assert.deepEqual(e.innerException, inner);
   assert.ok(e instanceof Error);
 });
@@ -35,7 +67,6 @@ QUnit.test('u.UnimplementedException', function(assert) {
   var e = new u.UnimplementedException('my message', inner);
   assert.equal(e.message, 'my message');
   assert.equal(e.name, 'UnimplementedException');
-  assert.ok(e.stack);
   assert.deepEqual(e.innerException, inner);
   assert.ok(e instanceof Error);
 });
@@ -173,11 +204,17 @@ QUnit.test('u.get', function(assert) {
             '@transparent-dark-gray: rgba(0, 0, 0, 0.075);\n' +
             '@item-max-height: 120px;\n';
 
-  u.get('http://gist.githubusercontent.com/florin-chelaru/623906a978210e68b03f/raw/d764a7553518ba53728ddfccdde5a658c415cd31/variables.less')
-    .then(function(act) {
+  u.get('variables.less.txt')
+    .then(
+    function(act) {
       assert.equal(act, exp);
       done();
-    });
+    },
+    function(reason) {
+      assert.notOk(reason);
+      done();
+    }
+  );
 });
 
 QUnit.test('u.lessConsts', function(assert) {
@@ -195,7 +232,7 @@ QUnit.test('u.lessConsts', function(assert) {
     'item-max-height':        '120px'
   };
 
-  u.lessConsts({uri: 'http://gist.githubusercontent.com/florin-chelaru/623906a978210e68b03f/raw/d764a7553518ba53728ddfccdde5a658c415cd31/variables.less'})
+  u.lessConsts({uri: 'variables.less.txt'})
     .then(function(act) {
       assert.deepEqual(act, exp);
       done();
@@ -276,7 +313,6 @@ QUnit.test('u.reflection.ReflectionException', function(assert) {
   var e = new u.reflection.ReflectionException('my message', inner);
   assert.equal(e.message, 'my message');
   assert.equal(e.name, 'ReflectionException');
-  assert.ok(e.stack);
   assert.deepEqual(e.innerException, inner);
 });
 

@@ -18,16 +18,59 @@
 */
 
 
-goog.provide('u.string');
+goog.provide('u.Exception');
 
 /**
- * @param {string} text
- * @returns {string}
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends Error
  */
-u.string.capitalizeFirstLetter = function (text) {
-  if (!text) { return text; }
-  return text.charAt(0).toUpperCase() + text.slice(1);
+u.Exception = function(message, innerException) {
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._errorCore = new Error(message);
+
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._innerException = innerException || null;
+
+  /**
+   * @type {string}
+   */
+  this.message = this._errorCore.message;
+
+  /**
+   * @type {string}
+   */
+  this.name = 'Exception';
 };
+
+goog.inherits(u.Exception, Error);
+
+Object.defineProperties(u.Exception.prototype, {
+  /**
+   * @property
+   * @type {string}
+   * @name u.Exception#stack
+   */
+  'stack': /** @type {string} */ ({
+    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
+  }),
+
+  /**
+   * @property
+   * @type {Error}
+   * @name u.Exception#innerException
+   */
+  'innerException': /** @type {Error} */ ({
+    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
+  })
+});
 
 
 goog.provide('u.array');
@@ -84,61 +127,6 @@ u.array.unique = function(arr) {
     return result;
   }, []);
 };
-
-
-goog.provide('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends Error
- */
-u.Exception = function(message, innerException) {
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._errorCore = new Error(message);
-
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._innerException = innerException || null;
-
-  /**
-   * @type {string}
-   */
-  this.message = this._errorCore.message;
-
-  /**
-   * @type {string}
-   */
-  this.name = 'Exception';
-};
-
-goog.inherits(u.Exception, Error);
-
-Object.defineProperties(u.Exception.prototype, {
-  /**
-   * @property
-   * @type {string}
-   * @name u.Exception#stack
-   */
-  'stack': /** @type {string} */ ({
-    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
-  }),
-
-  /**
-   * @property
-   * @type {Error}
-   * @name u.Exception#innerException
-   */
-  'innerException': /** @type {Error} */ ({
-    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
-  })
-});
 
 
 goog.provide('u.reflection');
@@ -272,10 +260,8 @@ u.async.each = function(items, iteration, inOrder) {
       }
 
       var d, remaining;
-      var initialResolve;
       d = new Array(items.length+1);
-      d[0] = new Promise(function(resolve) { initialResolve = resolve; });
-      initialResolve();
+      d[0] = new Promise(function(resolve) { resolve(); });
 
       items.forEach(function(item, i) {
         d[i + 1] = d[i].then(function() { return iteration.call(null, item, i); });
@@ -346,174 +332,215 @@ u.async.Deferred.prototype.catch = function(onRejected) {
 };
 
 
-goog.provide('u.EventListener');
+goog.provide('u.Promise');
 
-/**
- * @param {function(T)} callback
- * @param {Object} [thisArg]
- * @constructor
- * @template T
- */
-u.EventListener = function(callback, thisArg) {
-  /**
-   * @type {number}
-   * @private
-   */
-  this._id = ++u.EventListener._lastId;
+(function(window) {
+  if ('Promise' in window) { return; }
 
   /**
-   * @type {function(T)}
-   * @private
+   * @param {function(function(*), function(*))} resolver
+   * @constructor
    */
-  this._callback = callback;
+  var PromisePolyfill = function(resolver) {
+    if (typeof resolver != 'function') {
+      throw new TypeError('Promise resolver ' + resolver + ' is not a function');
+    }
 
-  /**
-   * @type {Object|undefined}
-   * @private
-   */
-  this._thisArg = thisArg;
-};
+    /**
+     * @type {Array.<Function>}
+     * @private
+     */
+    this._fulfilledCallbacks = [];
 
-u.EventListener._lastId = -1;
+    /**
+     * @type {Array.<Function>}
+     * @private
+     */
+    this._rejectedCallbacks = [];
 
-/**
- * @param {T} [args]
- */
-u.EventListener.prototype.fire = function(args) {
-  this._callback.call(this._thisArg, args);
-};
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this._resolved = false;
 
-/**
- * @type {number}
- * @name u.EventListener#id
- */
-u.EventListener.prototype.id;
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this._rejected = false;
 
-Object.defineProperties(u.EventListener.prototype, {
-  'id': { get: /** @type {function (this:u.EventListener)} */ (function() { return this._id; })}
-});
+    /**
+     * @type {*}
+     * @private
+     */
+    this._resolvedVal = undefined;
 
+    /**
+     * @type {*}
+     * @private
+     */
+    this._rejectedReason = undefined;
 
-goog.provide('u.Event');
-
-goog.require('u.EventListener');
-
-/**
- * @param {{synchronous: (boolean|undefined), timeout: (function(Function, number)|undefined)}} [options]
- * @constructor
- * @template T
- */
-u.Event = function(options) {
-
-  /**
-   * @type {boolean}
-   * @private
-   */
-  this._synchronous = options ? !!options.synchronous : false;
-
-  /**
-   * @type {number}
-   * @private
-   */
-  this._count = 0;
-
-  /**
-   * @type {Object.<number, u.EventListener.<T>>}
-   * @private
-   */
-  this._listeners = {};
-
-  /**
-   * Set to true when in the notify() method, to avoid infinite loops.
-   * This is only used when the events are synchronous
-   * @type {boolean}
-   * @private
-   */
-  this._firing = false;
-
-  /**
-   * @type {function(Function, number)}
-   * @private
-   */
-  this._timeout = (options && options.timeout) ? options.timeout : setTimeout;
-};
-
-/**
- * @type {boolean}
- * @name u.Event#synchronous
- */
-u.Event.prototype.synchronous;
-
-/**
- * @type {boolean}
- * @name u.Event#firing
- */
-u.Event.prototype.firing;
-
-Object.defineProperties(u.Event.prototype, {
-  'synchronous': { get: /** @type {function (this:u.Event)} */ (function() { return this._synchronous; })},
-  'firing': { get: /** @type {function (this:u.Event)} */ (function() { return this._firing; })}
-});
-
-/**
- * @param {u.EventListener.<T>|function(T)} listener
- * @param {Object} [thisArg]
- * @returns {u.EventListener.<T>}
- */
-u.Event.prototype.addListener = function(listener, thisArg) {
-  if (typeof(listener) == 'function') {
-    listener = new u.EventListener(listener, thisArg);
-  }
-
-  if (!this._listeners[listener['id']]) { ++this._count; }
-  this._listeners[listener['id']] = listener;
-
-  return listener;
-};
-
-/**
- * @param {u.EventListener.<T>} listener
- */
-u.Event.prototype.removeListener = function(listener) {
-  if (!this._listeners[listener['id']]) { return; }
-
-  delete this._listeners[listener['id']];
-  --this._count;
-};
-
-/**
- * @param {T} [args]
- */
-u.Event.prototype.fire = function(args) {
-  if (this._firing) { return; }
-
-  var self = this;
-  var timeout = this._timeout;
-  var synchronous = this._synchronous;
-  var doFire = function() {
-    if (self._count == 0) { return; }
-
-    self._firing = synchronous;
-
-    u.each(self._listeners, function(id, listener) {
-      if (!synchronous) {
-        timeout.call(null, function() {
-          listener.fire(args);
-        }, 0);
-      } else {
-        listener.fire(args);
+    var self = this;
+    setTimeout(function() {
+      try {
+        resolver(
+          // Resolve
+          function (value) {
+            self._resolved = true;
+            self._resolvedVal = value;
+            self._callAllFulfilled(value);
+          },
+          // Reject
+          function (reason) {
+            self._rejected = true;
+            self._rejectedReason = reason;
+            self._callAllRejected(reason);
+          });
+      } catch (err) {
+        self._callAllRejected(err);
       }
+    }, 0);
+  };
+
+  /**
+   * @param {function(*)} [onFulfilled]
+   * @param {function(*)} [onRejected]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill.prototype['then'] = function (onFulfilled, onRejected) {
+    var resolve, reject;
+    var ret = new PromisePolyfill(function() { resolve = arguments[0]; reject = arguments[1]; });
+    var fulfilledWrapper, rejectedWrapper;
+    if (typeof onFulfilled == 'function') {
+      fulfilledWrapper = function(value) {
+        try {
+          var next = onFulfilled.call(null, value);
+          if (next instanceof PromisePolyfill) {
+            next['then'](resolve, reject);
+          } else {
+            resolve(next);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+      this._fulfilledCallbacks.push(fulfilledWrapper);
+    }
+    if (typeof onRejected == 'function') {
+      rejectedWrapper = function(reason) {
+        try {
+          var next = onRejected.call(null, reason);
+          if (next instanceof PromisePolyfill) {
+            next['then'](resolve, reject);
+          } else {
+            resolve(next);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+      this._rejectedCallbacks.push(rejectedWrapper);
+    }
+
+    var self = this;
+    if (this._resolved) {
+      setTimeout(function() { fulfilledWrapper.call(null, self._resolvedVal); }, 0);
+    } else if (this._rejected) {
+      setTimeout(function() { rejectedWrapper.call(null, self._rejectedReason); }, 0);
+    }
+
+    return ret;
+  };
+
+  /**
+   * @param {function(*)} [onRejected]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill.prototype['catch'] = function(onRejected) { return this['then'](undefined, onRejected); };
+
+  /**
+   * @param {T} value
+   * @template T
+   */
+  PromisePolyfill.prototype._callAllFulfilled = function(value) {
+    this._fulfilledCallbacks.forEach(function(callback) {
+      setTimeout(function() {  console.log('calling resolve callback with value ' + value); callback.call(null, value); }, 0);
+    });
+    this._fulfilledCallbacks = [];
+  };
+
+  /**
+   * @param {*} reason
+   */
+  PromisePolyfill.prototype._callAllRejected = function(reason) {
+    this._rejectedCallbacks.forEach(function(callback) {
+      setTimeout(function() {  callback.call(null, reason); }, 0);
+    });
+    this._rejectedCallbacks = [];
+  };
+
+  /**
+   * @param {*} [value]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['resolve'] = function(value) { return new PromisePolyfill(function(resolve) { resolve(value); }); };
+
+  /**
+   * @param {*} [reason]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['reject'] = function(reason) { return new PromisePolyfill(function(resolve, reject) { reject(reason); }); };
+
+  /**
+   * @param {Array} promises
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['all'] = function(promises) {
+    if (!promises || !promises.length) { return PromisePolyfill['resolve'](); }
+    return new PromisePolyfill(function(resolve, reject) {
+      var ret = new Array(promises.length);
+      var remaining = promises.length;
+      promises.forEach(function(promise, i) {
+        var p = (promise instanceof PromisePolyfill) ? promise : PromisePolyfill['resolve'](promise);
+        p['then'](
+          function(value) {
+            ret[i] = value;
+            --remaining;
+            if (!remaining) { resolve(ret); }
+          },
+          function(reason) {
+            reject(reason);
+          });
+      });
     });
   };
 
-  if (synchronous) {
-    doFire();
-  } else {
-    timeout.call(null, doFire, 0);
-  }
+  window['Promise'] = PromisePolyfill;
+})(this);
 
-  this._firing = false;
+
+goog.provide('u.AbstractMethodException');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.AbstractMethodException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'AbstractMethodException';
 };
+
+goog.inherits(u.AbstractMethodException, u.Exception);
 
 
 goog.provide('u.Geolocation');
@@ -554,64 +581,6 @@ u.Geolocation.prototype.equals = function(other) {
   if (other == undefined) { return false; }
   return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'] && this['range'] == other['range'];
 };
-
-
-goog.provide('u.UnimplementedException');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.UnimplementedException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'UnimplementedException';
-};
-
-goog.inherits(u.UnimplementedException, u.Exception);
-
-
-goog.provide('u.math');
-
-/**
- * @param {number} x
- * @param {number} precision
- * @returns {number}
- */
-u.math.floorPrecision = function(x, precision) {
-  if (precision == 0) { return Math.floor(x); }
-  var m = Math.pow(10, precision);
-  return Math.floor(x * m) / m;
-};
-
-
-goog.provide('u.AbstractMethodException');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.AbstractMethodException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'AbstractMethodException';
-};
-
-goog.inherits(u.AbstractMethodException, u.Exception);
 
 
 goog.provide('u');
@@ -957,3 +926,221 @@ u.TimeSpan.prototype.toString = function() {
   return u.string.capitalizeFirstLetter(ret);
 };
 
+
+
+goog.provide('u.string');
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+u.string.capitalizeFirstLetter = function (text) {
+  if (!text) { return text; }
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+
+goog.provide('u.EventListener');
+
+/**
+ * @param {function(T)} callback
+ * @param {Object} [thisArg]
+ * @constructor
+ * @template T
+ */
+u.EventListener = function(callback, thisArg) {
+  /**
+   * @type {number}
+   * @private
+   */
+  this._id = ++u.EventListener._lastId;
+
+  /**
+   * @type {function(T)}
+   * @private
+   */
+  this._callback = callback;
+
+  /**
+   * @type {Object|undefined}
+   * @private
+   */
+  this._thisArg = thisArg;
+};
+
+u.EventListener._lastId = -1;
+
+/**
+ * @param {T} [args]
+ */
+u.EventListener.prototype.fire = function(args) {
+  this._callback.call(this._thisArg, args);
+};
+
+/**
+ * @type {number}
+ * @name u.EventListener#id
+ */
+u.EventListener.prototype.id;
+
+Object.defineProperties(u.EventListener.prototype, {
+  'id': { get: /** @type {function (this:u.EventListener)} */ (function() { return this._id; })}
+});
+
+
+goog.provide('u.Event');
+
+goog.require('u.EventListener');
+
+/**
+ * @param {{synchronous: (boolean|undefined), timeout: (function(Function, number)|undefined)}} [options]
+ * @constructor
+ * @template T
+ */
+u.Event = function(options) {
+
+  /**
+   * @type {boolean}
+   * @private
+   */
+  this._synchronous = options ? !!options.synchronous : false;
+
+  /**
+   * @type {number}
+   * @private
+   */
+  this._count = 0;
+
+  /**
+   * @type {Object.<number, u.EventListener.<T>>}
+   * @private
+   */
+  this._listeners = {};
+
+  /**
+   * Set to true when in the notify() method, to avoid infinite loops.
+   * This is only used when the events are synchronous
+   * @type {boolean}
+   * @private
+   */
+  this._firing = false;
+
+  /**
+   * @type {function(Function, number)}
+   * @private
+   */
+  this._timeout = (options && options.timeout) ? options.timeout : setTimeout;
+};
+
+/**
+ * @type {boolean}
+ * @name u.Event#synchronous
+ */
+u.Event.prototype.synchronous;
+
+/**
+ * @type {boolean}
+ * @name u.Event#firing
+ */
+u.Event.prototype.firing;
+
+Object.defineProperties(u.Event.prototype, {
+  'synchronous': { get: /** @type {function (this:u.Event)} */ (function() { return this._synchronous; })},
+  'firing': { get: /** @type {function (this:u.Event)} */ (function() { return this._firing; })}
+});
+
+/**
+ * @param {u.EventListener.<T>|function(T)} listener
+ * @param {Object} [thisArg]
+ * @returns {u.EventListener.<T>}
+ */
+u.Event.prototype.addListener = function(listener, thisArg) {
+  if (typeof(listener) == 'function') {
+    listener = new u.EventListener(listener, thisArg);
+  }
+
+  if (!this._listeners[listener['id']]) { ++this._count; }
+  this._listeners[listener['id']] = listener;
+
+  return listener;
+};
+
+/**
+ * @param {u.EventListener.<T>} listener
+ */
+u.Event.prototype.removeListener = function(listener) {
+  if (!this._listeners[listener['id']]) { return; }
+
+  delete this._listeners[listener['id']];
+  --this._count;
+};
+
+/**
+ * @param {T} [args]
+ */
+u.Event.prototype.fire = function(args) {
+  if (this._firing) { return; }
+
+  var self = this;
+  var timeout = this._timeout;
+  var synchronous = this._synchronous;
+  var doFire = function() {
+    if (self._count == 0) { return; }
+
+    self._firing = synchronous;
+
+    u.each(self._listeners, function(id, listener) {
+      if (!synchronous) {
+        timeout.call(null, function() {
+          listener.fire(args);
+        }, 0);
+      } else {
+        listener.fire(args);
+      }
+    });
+  };
+
+  if (synchronous) {
+    doFire();
+  } else {
+    timeout.call(null, doFire, 0);
+  }
+
+  this._firing = false;
+};
+
+
+goog.provide('u.math');
+
+/**
+ * @param {number} x
+ * @param {number} precision
+ * @returns {number}
+ */
+u.math.floorPrecision = function(x, precision) {
+  if (precision == 0) { return Math.floor(x); }
+  var m = Math.pow(10, precision);
+  return Math.floor(x * m) / m;
+};
+
+
+goog.provide('u.UnimplementedException');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.UnimplementedException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'UnimplementedException';
+};
+
+goog.inherits(u.UnimplementedException, u.Exception);

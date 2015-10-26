@@ -59,10 +59,8 @@ u.async.each = function(items, iteration, inOrder) {
       }
 
       var d, remaining;
-      var initialResolve;
       d = new Array(items.length+1);
-      d[0] = new Promise(function(resolve) { initialResolve = resolve; });
-      initialResolve();
+      d[0] = new Promise(function(resolve) { resolve(); });
 
       items.forEach(function(item, i) {
         d[i + 1] = d[i].then(function() { return iteration.call(null, item, i); });
