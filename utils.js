@@ -18,6 +18,102 @@
 */
 
 
+goog.provide('u.Geolocation');
+
+/**
+ * @param {number} [lat]
+ * @param {number} [lng]
+ * @param {number} [zoom]
+ * @param {number} [range]
+ * @constructor
+ */
+u.Geolocation = function(lat, lng, zoom, range) {
+  /**
+   * @type {number}
+   */
+  this['lat'] = lat || 0;
+
+  /**
+   * @type {number}
+   */
+  this['lng'] = lng || 0;
+
+  /**
+   * @type {number}
+   */
+  this['zoom'] = zoom || 0;
+
+  /**
+   * @type {number}
+   */
+  this['range'] = range || 0;
+};
+
+/**
+ * @param {u.Geolocation|{lat: number, lng: number, zoom: number}} other
+ */
+u.Geolocation.prototype.equals = function(other) {
+  if (other == undefined) { return false; }
+  return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'] && this['range'] == other['range'];
+};
+
+
+goog.provide('u.array');
+
+/**
+ * @param {Arguments|Array} args
+ * @returns {Array}
+ */
+u.array.fromArguments = function(args) {
+  return /** @type {Array} */ (Array.isArray(args) ? args : [].slice.apply(args));
+};
+
+/**
+ * Creates an array of length n filled with value
+ * @param {number} n
+ * @param {*} value
+ * @returns {Array}
+ */
+u.array.fill = function(n, value) {
+  n = n || 0;
+  var ret = new Array(n);
+  for (var i = 0; i < n; ++i) { ret[i] = value; }
+  return ret;
+};
+
+/**
+ * Generates an array of consecutive numbers starting from start, or 0 if it's not defined
+ * @param {number} n
+ * @param {number} [start]
+ * @returns {Array.<number>}
+ */
+u.array.range = function(n, start) {
+  start = start || 0;
+  n = n || 0;
+
+  var result = new Array(n);
+  for (var i = 0; i < n; ++i) {
+    result[i] = i + start;
+  }
+
+  return result;
+};
+
+/**
+ * Returns a new array where all elements are unique
+ * Complexity is suboptimal: O(n^2); for strings and numbers,
+ * it can be done faster, using a map
+ * @param {Array} arr
+ * @returns {Array}
+ */
+u.array.unique = function(arr) {
+  return arr.reduce(function(result, item) {
+    if (result.indexOf(item) < 0) { result.push(item); }
+    return result;
+  }, []);
+};
+
+
 goog.provide('u.Exception');
 
 /**
@@ -73,7 +169,8 @@ Object.defineProperties(u.Exception.prototype, {
 });
 
 
-goog.provide('u.UnimplementedException');
+goog.provide('u.reflection');
+goog.require('u.array');
 
 goog.require('u.Exception');
 
@@ -83,16 +180,70 @@ goog.require('u.Exception');
  * @constructor
  * @extends u.Exception
  */
-u.UnimplementedException = function(message, innerException) {
+u.reflection.ReflectionException = function(message, innerException) {
   u.Exception.apply(this, arguments);
 
   /**
    * @type {string}
    */
-  this.name = 'UnimplementedException';
+  this.name = 'ReflectionException';
 };
 
-goog.inherits(u.UnimplementedException, u.Exception);
+goog.inherits(u.reflection.ReflectionException, u.Exception);
+
+
+/**
+ * Evaluates the given string into a constructor for a type
+ * @param {string} typeName
+ * @param {Object} [context]
+ * @returns {function(new: T)}
+ * @template T
+ */
+u.reflection.evaluateFullyQualifiedTypeName = function(typeName, context) {
+  var result;
+
+  try {
+    var namespaces = typeName.split('.');
+    var func = namespaces.pop();
+    var ctx = context || window;
+    for (var i = 0; i < namespaces.length; ++i) {
+      ctx = ctx[namespaces[i]];
+    }
+    result = ctx[func];
+  } catch (error) {
+    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName, error);
+  }
+
+  if (typeof(result) !== 'function') {
+    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName);
+  }
+
+  return result;
+};
+
+/**
+ * Applies the given constructor to the given parameters and creates
+ * a new instance of the class it defines
+ * @param {function(new: T)} ctor
+ * @param {Array|Arguments} params
+ * @returns {T}
+ * @template T
+ */
+u.reflection.applyConstructor = function(ctor, params) {
+  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params))));
+};
+
+/**
+ * Wraps given type around the given object, so the object's prototype matches the one of the type
+ * @param {Object} o
+ * @param {function(new: T)} type
+ * @returns {T}
+ * @template T
+ */
+u.reflection.wrap = function(o, type) {
+  o.__proto__ = type.prototype;
+  return o;
+};
 
 
 goog.provide('u');
@@ -220,356 +371,6 @@ u.lessConsts = function(opts) {
     pairs.forEach(function(pair) { ret[pair[0].substr(1)] = pair[1]; });
     resolve(ret);
   });
-};
-
-
-goog.provide('u.Geolocation');
-
-/**
- * @param {number} [lat]
- * @param {number} [lng]
- * @param {number} [zoom]
- * @param {number} [range]
- * @constructor
- */
-u.Geolocation = function(lat, lng, zoom, range) {
-  /**
-   * @type {number}
-   */
-  this['lat'] = lat || 0;
-
-  /**
-   * @type {number}
-   */
-  this['lng'] = lng || 0;
-
-  /**
-   * @type {number}
-   */
-  this['zoom'] = zoom || 0;
-
-  /**
-   * @type {number}
-   */
-  this['range'] = range || 0;
-};
-
-/**
- * @param {u.Geolocation|{lat: number, lng: number, zoom: number}} other
- */
-u.Geolocation.prototype.equals = function(other) {
-  if (other == undefined) { return false; }
-  return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'] && this['range'] == other['range'];
-};
-
-
-goog.provide('u.array');
-
-/**
- * @param {Arguments|Array} args
- * @returns {Array}
- */
-u.array.fromArguments = function(args) {
-  return /** @type {Array} */ (Array.isArray(args) ? args : [].slice.apply(args));
-};
-
-/**
- * Creates an array of length n filled with value
- * @param {number} n
- * @param {*} value
- * @returns {Array}
- */
-u.array.fill = function(n, value) {
-  n = n || 0;
-  var ret = new Array(n);
-  for (var i = 0; i < n; ++i) { ret[i] = value; }
-  return ret;
-};
-
-/**
- * Generates an array of consecutive numbers starting from start, or 0 if it's not defined
- * @param {number} n
- * @param {number} [start]
- * @returns {Array.<number>}
- */
-u.array.range = function(n, start) {
-  start = start || 0;
-  n = n || 0;
-
-  var result = new Array(n);
-  for (var i = 0; i < n; ++i) {
-    result[i] = i + start;
-  }
-
-  return result;
-};
-
-/**
- * Returns a new array where all elements are unique
- * Complexity is suboptimal: O(n^2); for strings and numbers,
- * it can be done faster, using a map
- * @param {Array} arr
- * @returns {Array}
- */
-u.array.unique = function(arr) {
-  return arr.reduce(function(result, item) {
-    if (result.indexOf(item) < 0) { result.push(item); }
-    return result;
-  }, []);
-};
-
-
-goog.provide('u.reflection');
-goog.require('u.array');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.reflection.ReflectionException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'ReflectionException';
-};
-
-goog.inherits(u.reflection.ReflectionException, u.Exception);
-
-
-/**
- * Evaluates the given string into a constructor for a type
- * @param {string} typeName
- * @returns {function(new: T)}
- * @template T
- */
-u.reflection.evaluateFullyQualifiedTypeName = function(typeName) {
-  var result;
-
-  try {
-    var namespaces = typeName.split('.');
-    var func = namespaces.pop();
-    var context = window;
-    for (var i = 0; i < namespaces.length; ++i) {
-      context = context[namespaces[i]];
-    }
-    result = context[func];
-  } catch (error) {
-    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName, error);
-  }
-
-  if (typeof(result) !== 'function') {
-    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName);
-  }
-
-  return result;
-};
-
-/**
- * Applies the given constructor to the given parameters and creates
- * a new instance of the class it defines
- * @param {function(new: T)} ctor
- * @param {Array|Arguments} params
- * @returns {T}
- * @template T
- */
-u.reflection.applyConstructor = function(ctor, params) {
-  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params))));
-};
-
-/**
- * Wraps given type around the given object, so the object's prototype matches the one of the type
- * @param {Object} o
- * @param {function(new: T)} type
- * @returns {T}
- * @template T
- */
-u.reflection.wrap = function(o, type) {
-  o.__proto__ = type.prototype;
-  return o;
-};
-
-
-goog.provide('u.EventListener');
-
-/**
- * @param {function(T)} callback
- * @param {Object} [thisArg]
- * @constructor
- * @template T
- */
-u.EventListener = function(callback, thisArg) {
-  /**
-   * @type {number}
-   * @private
-   */
-  this._id = ++u.EventListener._lastId;
-
-  /**
-   * @type {function(T)}
-   * @private
-   */
-  this._callback = callback;
-
-  /**
-   * @type {Object|undefined}
-   * @private
-   */
-  this._thisArg = thisArg;
-};
-
-u.EventListener._lastId = -1;
-
-/**
- * @param {T} [args]
- */
-u.EventListener.prototype.fire = function(args) {
-  this._callback.call(this._thisArg, args);
-};
-
-/**
- * @type {number}
- * @name u.EventListener#id
- */
-u.EventListener.prototype.id;
-
-Object.defineProperties(u.EventListener.prototype, {
-  'id': { get: /** @type {function (this:u.EventListener)} */ (function() { return this._id; })}
-});
-
-
-goog.provide('u.Event');
-
-goog.require('u.EventListener');
-
-/**
- * @param {{synchronous: (boolean|undefined), timeout: (function(Function, number)|undefined)}} [options]
- * @constructor
- * @template T
- */
-u.Event = function(options) {
-
-  /**
-   * @type {boolean}
-   * @private
-   */
-  this._synchronous = options ? !!options.synchronous : false;
-
-  /**
-   * @type {number}
-   * @private
-   */
-  this._count = 0;
-
-  /**
-   * @type {Object.<number, u.EventListener.<T>>}
-   * @private
-   */
-  this._listeners = {};
-
-  /**
-   * Set to true when in the notify() method, to avoid infinite loops.
-   * This is only used when the events are synchronous
-   * @type {boolean}
-   * @private
-   */
-  this._firing = false;
-
-  /**
-   * @type {function(Function, number)}
-   * @private
-   */
-  this._timeout = (options && options.timeout) ? options.timeout : setTimeout;
-};
-
-/**
- * @type {boolean}
- * @name u.Event#synchronous
- */
-u.Event.prototype.synchronous;
-
-/**
- * @type {boolean}
- * @name u.Event#firing
- */
-u.Event.prototype.firing;
-
-/**
- * Gets the number of listeners register for the event
- * @type {number}
- * @name u.Event#count
- */
-u.Event.prototype.count;
-
-Object.defineProperties(u.Event.prototype, {
-  'synchronous': { get: /** @type {function (this:u.Event)} */ (function() { return this._synchronous; })},
-  'firing': { get: /** @type {function (this:u.Event)} */ (function() { return this._firing; })},
-  'count': { get: /** @type {function (this:u.Event)} */ (function() { return this._count; })}
-});
-
-/**
- * @param {u.EventListener.<T>|function(T)} listener
- * @param {Object} [thisArg]
- * @returns {u.EventListener.<T>}
- */
-u.Event.prototype.addListener = function(listener, thisArg) {
-  if (typeof(listener) == 'function') {
-    listener = new u.EventListener(listener, thisArg);
-  }
-
-  if (!this._listeners[listener['id']]) { ++this._count; }
-  this._listeners[listener['id']] = listener;
-
-  return listener;
-};
-
-/**
- * @param {u.EventListener.<T>} listener
- */
-u.Event.prototype.removeListener = function(listener) {
-  if (!this._listeners[listener['id']]) { return; }
-
-  delete this._listeners[listener['id']];
-  --this._count;
-};
-
-/**
- * @param {T} [args]
- */
-u.Event.prototype.fire = function(args) {
-  if (this._firing) { return; }
-
-  var self = this;
-  var timeout = this._timeout;
-  var synchronous = this._synchronous;
-  var doFire = function() {
-    if (self._count == 0) { return; }
-
-    self._firing = synchronous;
-
-    u.each(self._listeners, function(id, listener) {
-      if (!synchronous) {
-        timeout.call(null, function() {
-          listener.fire(args);
-        }, 0);
-      } else {
-        listener.fire(args);
-      }
-    });
-  };
-
-  if (synchronous) {
-    doFire();
-  } else {
-    timeout.call(null, doFire, 0);
-  }
-
-  this._firing = false;
 };
 
 
@@ -790,6 +591,40 @@ u.TimeSpan.prototype.toString = function() {
 
 
 
+goog.provide('u.UnimplementedException');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.UnimplementedException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'UnimplementedException';
+};
+
+goog.inherits(u.UnimplementedException, u.Exception);
+
+
+goog.provide('u.string');
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+u.string.capitalizeFirstLetter = function (text) {
+  if (!text) { return text; }
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+
 goog.provide('u.math');
 
 /**
@@ -953,15 +788,181 @@ u.async.Deferred.prototype.catch = function(onRejected) {
 };
 
 
-goog.provide('u.string');
+goog.provide('u.EventListener');
 
 /**
- * @param {string} text
- * @returns {string}
+ * @param {function(T)} callback
+ * @param {Object} [thisArg]
+ * @constructor
+ * @template T
  */
-u.string.capitalizeFirstLetter = function (text) {
-  if (!text) { return text; }
-  return text.charAt(0).toUpperCase() + text.slice(1);
+u.EventListener = function(callback, thisArg) {
+  /**
+   * @type {number}
+   * @private
+   */
+  this._id = ++u.EventListener._lastId;
+
+  /**
+   * @type {function(T)}
+   * @private
+   */
+  this._callback = callback;
+
+  /**
+   * @type {Object|undefined}
+   * @private
+   */
+  this._thisArg = thisArg;
+};
+
+u.EventListener._lastId = -1;
+
+/**
+ * @param {T} [args]
+ */
+u.EventListener.prototype.fire = function(args) {
+  this._callback.call(this._thisArg, args);
+};
+
+/**
+ * @type {number}
+ * @name u.EventListener#id
+ */
+u.EventListener.prototype.id;
+
+Object.defineProperties(u.EventListener.prototype, {
+  'id': { get: /** @type {function (this:u.EventListener)} */ (function() { return this._id; })}
+});
+
+
+goog.provide('u.Event');
+
+goog.require('u.EventListener');
+
+/**
+ * @param {{synchronous: (boolean|undefined), timeout: (function(Function, number)|undefined)}} [options]
+ * @constructor
+ * @template T
+ */
+u.Event = function(options) {
+
+  /**
+   * @type {boolean}
+   * @private
+   */
+  this._synchronous = options ? !!options.synchronous : false;
+
+  /**
+   * @type {number}
+   * @private
+   */
+  this._count = 0;
+
+  /**
+   * @type {Object.<number, u.EventListener.<T>>}
+   * @private
+   */
+  this._listeners = {};
+
+  /**
+   * Set to true when in the notify() method, to avoid infinite loops.
+   * This is only used when the events are synchronous
+   * @type {boolean}
+   * @private
+   */
+  this._firing = false;
+
+  /**
+   * @type {function(Function, number)}
+   * @private
+   */
+  this._timeout = (options && options.timeout) ? options.timeout : setTimeout;
+};
+
+/**
+ * @type {boolean}
+ * @name u.Event#synchronous
+ */
+u.Event.prototype.synchronous;
+
+/**
+ * @type {boolean}
+ * @name u.Event#firing
+ */
+u.Event.prototype.firing;
+
+/**
+ * Gets the number of listeners register for the event
+ * @type {number}
+ * @name u.Event#count
+ */
+u.Event.prototype.count;
+
+Object.defineProperties(u.Event.prototype, {
+  'synchronous': { get: /** @type {function (this:u.Event)} */ (function() { return this._synchronous; })},
+  'firing': { get: /** @type {function (this:u.Event)} */ (function() { return this._firing; })},
+  'count': { get: /** @type {function (this:u.Event)} */ (function() { return this._count; })}
+});
+
+/**
+ * @param {u.EventListener.<T>|function(T)} listener
+ * @param {Object} [thisArg]
+ * @returns {u.EventListener.<T>}
+ */
+u.Event.prototype.addListener = function(listener, thisArg) {
+  if (typeof(listener) == 'function') {
+    listener = new u.EventListener(listener, thisArg);
+  }
+
+  if (!this._listeners[listener['id']]) { ++this._count; }
+  this._listeners[listener['id']] = listener;
+
+  return listener;
+};
+
+/**
+ * @param {u.EventListener.<T>} listener
+ */
+u.Event.prototype.removeListener = function(listener) {
+  if (!this._listeners[listener['id']]) { return; }
+
+  delete this._listeners[listener['id']];
+  --this._count;
+};
+
+/**
+ * @param {T} [args]
+ */
+u.Event.prototype.fire = function(args) {
+  if (this._firing) { return; }
+
+  var self = this;
+  var timeout = this._timeout;
+  var synchronous = this._synchronous;
+  var doFire = function() {
+    if (self._count == 0) { return; }
+
+    self._firing = synchronous;
+
+    u.each(self._listeners, function(id, listener) {
+      if (!synchronous) {
+        timeout.call(null, function() {
+          listener.fire(args);
+        }, 0);
+      } else {
+        listener.fire(args);
+      }
+    });
+  };
+
+  if (synchronous) {
+    doFire();
+  } else {
+    timeout.call(null, doFire, 0);
+  }
+
+  this._firing = false;
 };
 
 

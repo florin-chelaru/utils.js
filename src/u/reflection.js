@@ -30,20 +30,21 @@ goog.inherits(u.reflection.ReflectionException, u.Exception);
 /**
  * Evaluates the given string into a constructor for a type
  * @param {string} typeName
+ * @param {Object} [context]
  * @returns {function(new: T)}
  * @template T
  */
-u.reflection.evaluateFullyQualifiedTypeName = function(typeName) {
+u.reflection.evaluateFullyQualifiedTypeName = function(typeName, context) {
   var result;
 
   try {
     var namespaces = typeName.split('.');
     var func = namespaces.pop();
-    var context = window;
+    var ctx = context || window;
     for (var i = 0; i < namespaces.length; ++i) {
-      context = context[namespaces[i]];
+      ctx = ctx[namespaces[i]];
     }
-    result = context[func];
+    result = ctx[func];
   } catch (error) {
     throw new u.reflection.ReflectionException('Unknown type name: ' + typeName, error);
   }
