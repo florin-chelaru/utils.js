@@ -76,6 +76,19 @@ u.reflection.applyConstructor = function(ctor, params) {
  * @template T
  */
 u.reflection.wrap = function(o, type) {
-  o.__proto__ = type.prototype;
-  return o;
+  //o.__proto__ = type.prototype;
+  //return o;
+
+  var props = {};
+  for (var p in o) {
+    if (!o.hasOwnProperty(p)) { continue; }
+    (function(p) {
+      props[p] = {
+        get: function() { return o[p]; },
+        set: function(value) { o[p] = value; }
+      };
+    })(p);
+  }
+
+  return Object.create(type.prototype, props);
 };

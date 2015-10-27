@@ -92,7 +92,7 @@
       <arg line="&#45;&#45;summary_detail_level=3"/>
       <arg line="&#45;&#45;language_in=ECMASCRIPT5_STRICT"/>
       <arg line="&#45;&#45;source_map_format=V3"/>
-      <arg line="--output_wrapper='(function(){%output%}).call(this); //@ sourceMappingURL=${compiledmin}.map'"/>
+      <arg line="--output_wrapper='(function(){%output%}).call(this); //# sourceMappingURL=${compiledmin}.map'"/>
       <!--<arg line="&#45;&#45;output_wrapper='%output% //@ sourceMappingURL=${compiledmin}.map'"/>-->
       <arg line="&#45;&#45;js_output_file=${outfile}"/>
       <arg line="&#45;&#45;create_source_map=${outfile}.map"/>

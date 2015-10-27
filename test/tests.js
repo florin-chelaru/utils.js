@@ -14,7 +14,6 @@ QUnit.test('Promise', function(assert) {
   var exp = 'something';
   var p = new Promise(function(resolve, reject) {
     setTimeout(function() {
-      console.log('called resolve');
       resolve('something');
     }, 100);
   }).then(function(value) {
@@ -304,11 +303,20 @@ QUnit.test('u.reflection.wrap', function(assert) {
   Foo.prototype.bar = function() { return this.x; };
 
   var obj = {x: '10'};
-  u.reflection.wrap(obj, Foo);
+  var wrapped = u.reflection.wrap(obj, Foo);
 
-  assert.ok(obj instanceof Foo);
-  assert.ok(obj.bar);
-  assert.equal(obj.bar(), '10');
+  //assert.ok(obj instanceof Foo);
+  //assert.ok(obj.bar);
+  //assert.equal(obj.bar(), '10');
+
+  assert.notOk(obj instanceof Foo);
+  assert.ok(wrapped instanceof Foo);
+  assert.ok(wrapped.bar);
+  assert.notOk(obj.bar);
+  assert.equal(wrapped.bar(), '10');
+  wrapped.x = 20;
+  assert.equal(wrapped.x, 20);
+  assert.equal(wrapped.x, obj.x);
 });
 
 QUnit.test('u.reflection.ReflectionException', function(assert) {
