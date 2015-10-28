@@ -18,143 +18,181 @@
 */
 
 
-goog.provide('u');
+goog.provide('u.EventListener');
 
 /**
- * @param {Array|Object.<number|string, *>} obj
- * @param {function((number|string), *)} callback
- * @returns {Array|Object}
- */
-u.each = function(obj, callback) {
-  if (obj == undefined) { return obj; }
-
-  var i;
-  if (Array.isArray(obj)) {
-    for (i = 0; i < obj.length; ++i) {
-      if (callback.call(obj[i], i, obj[i]) === false) { break; }
-    }
-  } else {
-    for (i in obj) {
-      if (callback.call(obj[i], i, obj[i]) === false) { break; }
-    }
-  }
-
-  return obj;
-};
-
-/**
- * @param {Array.<T>|Object.<number|string, T>} obj
- * @param {function(T, (number|string|undefined)): V} callback
+ * @param {function(T)} callback
  * @param {Object} [thisArg]
- * @returns {Array.<V>}
- * @template T, V
+ * @constructor
+ * @template T
  */
-u.map = function(obj, callback, thisArg) {
-  if (obj == undefined) { return []; }
+u.EventListener = function(callback, thisArg) {
+  /**
+   * @type {number}
+   * @private
+   */
+  this._id = ++u.EventListener._lastId;
 
-  if (Array.isArray(obj)) { return obj.map(callback); }
+  /**
+   * @type {function(T)}
+   * @private
+   */
+  this._callback = callback;
 
-  //var each = window['u']['each'];
+  /**
+   * @type {Object|undefined}
+   * @private
+   */
+  this._thisArg = thisArg;
+};
 
-  var ret = [];
-  u.each(obj, function(k, v) {
-    ret.push(callback.call(thisArg, v, k));
-  });
+u.EventListener._lastId = -1;
 
-  return ret;
+/**
+ * @param {T} [args]
+ */
+u.EventListener.prototype.fire = function(args) {
+  this._callback.call(this._thisArg, args);
 };
 
 /**
- * Makes a shallow copy of the given object or array
- * @param {Object|Array} obj
- * @returns {Object|Array}
+ * @type {number}
+ * @name u.EventListener#id
  */
-u.copy = function(obj) {
-  if (obj == undefined) { return obj; }
-  if (Array.isArray(obj)) { return obj.slice(); }
-  var ret = {};
-  u.each(obj, function(k, v) { ret[k] = v; });
-  return ret;
+u.EventListener.prototype.id;
+
+Object.defineProperties(u.EventListener.prototype, {
+  'id': { get: /** @type {function (this:u.EventListener)} */ (function() { return this._id; })}
+});
+
+
+goog.provide('u.Event');
+
+goog.require('u.EventListener');
+
+/**
+ * @param {{synchronous: (boolean|undefined), timeout: (function(Function, number)|undefined)}} [options]
+ * @constructor
+ * @template T
+ */
+u.Event = function(options) {
+
+  /**
+   * @type {boolean}
+   * @private
+   */
+  this._synchronous = options ? !!options.synchronous : false;
+
+  /**
+   * @type {number}
+   * @private
+   */
+  this._count = 0;
+
+  /**
+   * @type {Object.<number, u.EventListener.<T>>}
+   * @private
+   */
+  this._listeners = {};
+
+  /**
+   * Set to true when in the notify() method, to avoid infinite loops.
+   * This is only used when the events are synchronous
+   * @type {boolean}
+   * @private
+   */
+  this._firing = false;
+
+  /**
+   * @type {function(Function, number)}
+   * @private
+   */
+  this._timeout = (options && options.timeout) ? options.timeout : setTimeout;
 };
 
 /**
- * @const {string}
+ * @type {boolean}
+ * @name u.Event#synchronous
  */
-u.CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+u.Event.prototype.synchronous;
 
 /**
- * @param {number} size
- * @returns {string}
+ * @type {boolean}
+ * @name u.Event#firing
  */
-u.generatePseudoGUID = function(size) {
-  var chars = u.CHARS;
-  var result = '';
+u.Event.prototype.firing;
 
-  for (var i = 0; i < size; ++i) {
-    result += chars[Math.round(Math.random() * (chars.length - 1))];
+/**
+ * Gets the number of listeners register for the event
+ * @type {number}
+ * @name u.Event#count
+ */
+u.Event.prototype.count;
+
+Object.defineProperties(u.Event.prototype, {
+  'synchronous': { get: /** @type {function (this:u.Event)} */ (function() { return this._synchronous; })},
+  'firing': { get: /** @type {function (this:u.Event)} */ (function() { return this._firing; })},
+  'count': { get: /** @type {function (this:u.Event)} */ (function() { return this._count; })}
+});
+
+/**
+ * @param {u.EventListener.<T>|function(T)} listener
+ * @param {Object} [thisArg]
+ * @returns {u.EventListener.<T>}
+ */
+u.Event.prototype.addListener = function(listener, thisArg) {
+  if (typeof(listener) == 'function') {
+    listener = new u.EventListener(listener, thisArg);
   }
 
-  return result;
+  if (!this._listeners[listener['id']]) { ++this._count; }
+  this._listeners[listener['id']] = listener;
+
+  return listener;
 };
 
 /**
- * Lightweight version of ajax GET request with minimal error handling
- * @param {string} uri
- * @returns {Promise}
+ * @param {u.EventListener.<T>} listener
  */
-u.get = function(uri) {
-  return new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', uri, true);
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState === 4) {
-        if (xhr.status !== 200) {
-          reject('Request failed with error code ' + xhr.status);
-        } else {
-          resolve(xhr.responseText);
-        }
+u.Event.prototype.removeListener = function(listener) {
+  if (!this._listeners[listener['id']]) { return; }
+
+  delete this._listeners[listener['id']];
+  --this._count;
+};
+
+/**
+ * @param {T} [args]
+ */
+u.Event.prototype.fire = function(args) {
+  if (this._firing) { return; }
+
+  var self = this;
+  var timeout = this._timeout;
+  var synchronous = this._synchronous;
+  var doFire = function() {
+    if (self._count == 0) { return; }
+
+    self._firing = synchronous;
+
+    u.each(self._listeners, function(id, listener) {
+      if (!synchronous) {
+        timeout.call(null, function() {
+          listener.fire(args);
+        }, 0);
+      } else {
+        listener.fire(args);
       }
-    };
-    xhr.send();
-  });
-};
+    });
+  };
 
-/**
- * @param {{uri: (string|undefined), content: (string|undefined)}} opts
- * @returns {Promise} Promise.<Object.<string, string>>
- */
-u.lessConsts = function(opts) {
-  return new Promise(function(resolve, reject) {
-    if (!opts || (!opts['content'] && !opts['uri'])) { resolve({}); return; }
-    if (!opts['content']) {
-      u.get(opts['uri'])
-        .then(function(content) {
-          return u.lessConsts({content: content});
-        })
-        .then(resolve);
-      return;
-    }
+  if (synchronous) {
+    doFire();
+  } else {
+    timeout.call(null, doFire, 0);
+  }
 
-    var pairs = opts['content'].split(';')
-      .filter(function(line) { return line.trim().length > 0; })
-      .map(function(line) {
-        return line.trim().split(':').map(function(token) { return token.trim(); })});
-    var ret = {};
-    pairs.forEach(function(pair) { ret[pair[0].substr(1)] = pair[1]; });
-    resolve(ret);
-  });
-};
-
-
-goog.provide('u.string');
-
-/**
- * @param {string} text
- * @returns {string}
- */
-u.string.capitalizeFirstLetter = function (text) {
-  if (!text) { return text; }
-  return text.charAt(0).toUpperCase() + text.slice(1);
+  this._firing = false;
 };
 
 
@@ -483,6 +521,242 @@ u.async.Deferred.prototype.then = function(onFulfilled, onRejected) {
  */
 u.async.Deferred.prototype.catch = function(onRejected) {
   return this._promise.catch(onRejected);
+};
+
+
+goog.provide('u.UnimplementedException');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.UnimplementedException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'UnimplementedException';
+};
+
+goog.inherits(u.UnimplementedException, u.Exception);
+
+
+goog.provide('u.math');
+
+/**
+ * @param {number} x
+ * @param {number} precision
+ * @returns {number}
+ */
+u.math.floorPrecision = function(x, precision) {
+  if (precision == 0) { return Math.floor(x); }
+  var m = Math.pow(10, precision);
+  return Math.floor(x * m) / m;
+};
+
+
+goog.provide('u.Geolocation');
+
+/**
+ * @param {number} [lat]
+ * @param {number} [lng]
+ * @param {number} [zoom]
+ * @param {number} [range]
+ * @constructor
+ */
+u.Geolocation = function(lat, lng, zoom, range) {
+  /**
+   * @type {number}
+   */
+  this['lat'] = lat || 0;
+
+  /**
+   * @type {number}
+   */
+  this['lng'] = lng || 0;
+
+  /**
+   * @type {number}
+   */
+  this['zoom'] = zoom || 0;
+
+  /**
+   * @type {number}
+   */
+  this['range'] = range || 0;
+};
+
+/**
+ * @param {u.Geolocation|{lat: number, lng: number, zoom: number}} other
+ */
+u.Geolocation.prototype.equals = function(other) {
+  if (other == undefined) { return false; }
+  return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'] && this['range'] == other['range'];
+};
+
+
+goog.provide('u.string');
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+u.string.capitalizeFirstLetter = function (text) {
+  if (!text) { return text; }
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+
+goog.provide('u');
+
+/**
+ * @param {Array|Object.<number|string, *>} obj
+ * @param {function((number|string), *)} callback
+ * @returns {Array|Object}
+ */
+u.each = function(obj, callback) {
+  if (obj == undefined) { return obj; }
+
+  var i;
+  if (Array.isArray(obj)) {
+    for (i = 0; i < obj.length; ++i) {
+      if (callback.call(obj[i], i, obj[i]) === false) { break; }
+    }
+  } else {
+    for (i in obj) {
+      if (callback.call(obj[i], i, obj[i]) === false) { break; }
+    }
+  }
+
+  return obj;
+};
+
+/**
+ * @param {Array.<T>|Object.<number|string, T>} obj
+ * @param {function(T, (number|string|undefined)): V} callback
+ * @param {Object} [thisArg]
+ * @returns {Array.<V>}
+ * @template T, V
+ */
+u.map = function(obj, callback, thisArg) {
+  if (obj == undefined) { return []; }
+
+  if (Array.isArray(obj)) { return obj.map(callback); }
+
+  //var each = window['u']['each'];
+
+  var ret = [];
+  u.each(obj, function(k, v) {
+    ret.push(callback.call(thisArg, v, k));
+  });
+
+  return ret;
+};
+
+/**
+ * Makes a shallow copy of the given object or array
+ * @param {Object|Array} obj
+ * @returns {Object|Array}
+ */
+u.copy = function(obj) {
+  if (obj == undefined) { return obj; }
+  if (Array.isArray(obj)) { return obj.slice(); }
+  var ret = {};
+  u.each(obj, function(k, v) { ret[k] = v; });
+  return ret;
+};
+
+/**
+ * Extends the properties of dst with those of the other arguments of the function;
+ * values corresponding to common keys are overriden.
+ * @param {Object} dst
+ * @param {...Object} src
+ * @returns {Object}
+ */
+u.extend = function(dst, src) {
+  if (arguments.length <= 1) { return dst; }
+  for (var i = 1; i < arguments.length; ++i) {
+    var s = arguments[i];
+    for (var key in s) {
+      if (!s.hasOwnProperty(key)) { continue; }
+      dst[key] = s[key];
+    }
+  }
+
+  return dst;
+};
+
+/**
+ * @const {string}
+ */
+u.CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+/**
+ * @param {number} size
+ * @returns {string}
+ */
+u.generatePseudoGUID = function(size) {
+  var chars = u.CHARS;
+  var result = '';
+
+  for (var i = 0; i < size; ++i) {
+    result += chars[Math.round(Math.random() * (chars.length - 1))];
+  }
+
+  return result;
+};
+
+/**
+ * Lightweight version of ajax GET request with minimal error handling
+ * @param {string} uri
+ * @returns {Promise}
+ */
+u.httpGet = function(uri) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', uri, true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        if (xhr.status !== 200) {
+          reject('Request failed with error code ' + xhr.status);
+        } else {
+          resolve(xhr.responseText);
+        }
+      }
+    };
+    xhr.send();
+  });
+};
+
+/**
+ * @param {{uri: (string|undefined), content: (string|undefined)}} opts
+ * @returns {Promise} Promise.<Object.<string, string>>
+ */
+u.parseLessConsts = function(opts) {
+  return new Promise(function(resolve, reject) {
+    if (!opts || (!opts['content'] && !opts['uri'])) { resolve({}); return; }
+    if (!opts['content']) {
+      u.httpGet(opts['uri'])
+        .then(function(content) {
+          return u.parseLessConsts({content: content});
+        })
+        .then(resolve);
+      return;
+    }
+
+    var pairs = opts['content'].split(';')
+      .filter(function(line) { return line.trim().length > 0; })
+      .map(function(line) {
+        return line.trim().split(':').map(function(token) { return token.trim(); })});
+    var ret = {};
+    pairs.forEach(function(pair) { ret[pair[0].substr(1)] = pair[1]; });
+    resolve(ret);
+  });
 };
 
 
@@ -890,260 +1164,6 @@ u.TimeSpan.prototype.toString = function() {
   return u.string.capitalizeFirstLetter(ret);
 };
 
-
-
-goog.provide('u.math');
-
-/**
- * @param {number} x
- * @param {number} precision
- * @returns {number}
- */
-u.math.floorPrecision = function(x, precision) {
-  if (precision == 0) { return Math.floor(x); }
-  var m = Math.pow(10, precision);
-  return Math.floor(x * m) / m;
-};
-
-
-goog.provide('u.EventListener');
-
-/**
- * @param {function(T)} callback
- * @param {Object} [thisArg]
- * @constructor
- * @template T
- */
-u.EventListener = function(callback, thisArg) {
-  /**
-   * @type {number}
-   * @private
-   */
-  this._id = ++u.EventListener._lastId;
-
-  /**
-   * @type {function(T)}
-   * @private
-   */
-  this._callback = callback;
-
-  /**
-   * @type {Object|undefined}
-   * @private
-   */
-  this._thisArg = thisArg;
-};
-
-u.EventListener._lastId = -1;
-
-/**
- * @param {T} [args]
- */
-u.EventListener.prototype.fire = function(args) {
-  this._callback.call(this._thisArg, args);
-};
-
-/**
- * @type {number}
- * @name u.EventListener#id
- */
-u.EventListener.prototype.id;
-
-Object.defineProperties(u.EventListener.prototype, {
-  'id': { get: /** @type {function (this:u.EventListener)} */ (function() { return this._id; })}
-});
-
-
-goog.provide('u.Event');
-
-goog.require('u.EventListener');
-
-/**
- * @param {{synchronous: (boolean|undefined), timeout: (function(Function, number)|undefined)}} [options]
- * @constructor
- * @template T
- */
-u.Event = function(options) {
-
-  /**
-   * @type {boolean}
-   * @private
-   */
-  this._synchronous = options ? !!options.synchronous : false;
-
-  /**
-   * @type {number}
-   * @private
-   */
-  this._count = 0;
-
-  /**
-   * @type {Object.<number, u.EventListener.<T>>}
-   * @private
-   */
-  this._listeners = {};
-
-  /**
-   * Set to true when in the notify() method, to avoid infinite loops.
-   * This is only used when the events are synchronous
-   * @type {boolean}
-   * @private
-   */
-  this._firing = false;
-
-  /**
-   * @type {function(Function, number)}
-   * @private
-   */
-  this._timeout = (options && options.timeout) ? options.timeout : setTimeout;
-};
-
-/**
- * @type {boolean}
- * @name u.Event#synchronous
- */
-u.Event.prototype.synchronous;
-
-/**
- * @type {boolean}
- * @name u.Event#firing
- */
-u.Event.prototype.firing;
-
-/**
- * Gets the number of listeners register for the event
- * @type {number}
- * @name u.Event#count
- */
-u.Event.prototype.count;
-
-Object.defineProperties(u.Event.prototype, {
-  'synchronous': { get: /** @type {function (this:u.Event)} */ (function() { return this._synchronous; })},
-  'firing': { get: /** @type {function (this:u.Event)} */ (function() { return this._firing; })},
-  'count': { get: /** @type {function (this:u.Event)} */ (function() { return this._count; })}
-});
-
-/**
- * @param {u.EventListener.<T>|function(T)} listener
- * @param {Object} [thisArg]
- * @returns {u.EventListener.<T>}
- */
-u.Event.prototype.addListener = function(listener, thisArg) {
-  if (typeof(listener) == 'function') {
-    listener = new u.EventListener(listener, thisArg);
-  }
-
-  if (!this._listeners[listener['id']]) { ++this._count; }
-  this._listeners[listener['id']] = listener;
-
-  return listener;
-};
-
-/**
- * @param {u.EventListener.<T>} listener
- */
-u.Event.prototype.removeListener = function(listener) {
-  if (!this._listeners[listener['id']]) { return; }
-
-  delete this._listeners[listener['id']];
-  --this._count;
-};
-
-/**
- * @param {T} [args]
- */
-u.Event.prototype.fire = function(args) {
-  if (this._firing) { return; }
-
-  var self = this;
-  var timeout = this._timeout;
-  var synchronous = this._synchronous;
-  var doFire = function() {
-    if (self._count == 0) { return; }
-
-    self._firing = synchronous;
-
-    u.each(self._listeners, function(id, listener) {
-      if (!synchronous) {
-        timeout.call(null, function() {
-          listener.fire(args);
-        }, 0);
-      } else {
-        listener.fire(args);
-      }
-    });
-  };
-
-  if (synchronous) {
-    doFire();
-  } else {
-    timeout.call(null, doFire, 0);
-  }
-
-  this._firing = false;
-};
-
-
-goog.provide('u.UnimplementedException');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.UnimplementedException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'UnimplementedException';
-};
-
-goog.inherits(u.UnimplementedException, u.Exception);
-
-
-goog.provide('u.Geolocation');
-
-/**
- * @param {number} [lat]
- * @param {number} [lng]
- * @param {number} [zoom]
- * @param {number} [range]
- * @constructor
- */
-u.Geolocation = function(lat, lng, zoom, range) {
-  /**
-   * @type {number}
-   */
-  this['lat'] = lat || 0;
-
-  /**
-   * @type {number}
-   */
-  this['lng'] = lng || 0;
-
-  /**
-   * @type {number}
-   */
-  this['zoom'] = zoom || 0;
-
-  /**
-   * @type {number}
-   */
-  this['range'] = range || 0;
-};
-
-/**
- * @param {u.Geolocation|{lat: number, lng: number, zoom: number}} other
- */
-u.Geolocation.prototype.equals = function(other) {
-  if (other == undefined) { return false; }
-  return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'] && this['range'] == other['range'];
-};
 
 
 goog.provide('u.AbstractMethodException');

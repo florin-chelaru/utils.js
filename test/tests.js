@@ -187,6 +187,20 @@ QUnit.test('u.copy', function(assert) {
   notEqual(u.copy(arr), arr);
 });
 
+QUnit.test('u.extend', function(assert) {
+  assert.ok(u.extend);
+
+  var defaults = { name: 'John', age: 17, weight: 55 };
+  var overrides = {name: 'Jack', age: 28, color: 'green' };
+  var act = u.extend(defaults, overrides);
+
+  var exp = { name: 'Jack', age: 28, weight: 55, color: 'green' };
+  assert.deepEqual(act, exp);
+
+  act = u.extend({}, defaults, overrides);
+  assert.deepEqual(act, exp);
+});
+
 QUnit.test('u.generatePseudoGUID', function(assert) {
   assert.ok(u.generatePseudoGUID);
 
@@ -195,9 +209,9 @@ QUnit.test('u.generatePseudoGUID', function(assert) {
   assert.notOk(u.generatePseudoGUID(6) == u.generatePseudoGUID(6));
 });
 
-QUnit.test('u.get', function(assert) {
+QUnit.test('u.httpGet', function(assert) {
   var done = assert.async();
-  assert.ok(u.get);
+  assert.ok(u.httpGet);
 
   var exp = '@transition-speed: 0.5s;\n' +
             '@light-gray: #ddd;\n' +
@@ -208,7 +222,7 @@ QUnit.test('u.get', function(assert) {
             '@transparent-dark-gray: rgba(0, 0, 0, 0.075);\n' +
             '@item-max-height: 120px;\n';
 
-  u.get('variables.less.txt')
+  u.httpGet('variables.less.txt')
     .then(
     function(act) {
       assert.equal(act, exp);
@@ -221,9 +235,9 @@ QUnit.test('u.get', function(assert) {
   );
 });
 
-QUnit.test('u.lessConsts', function(assert) {
+QUnit.test('u.parseLessConsts', function(assert) {
   var done = assert.async();
-  assert.ok(u.lessConsts);
+  assert.ok(u.parseLessConsts);
 
   var exp = {
     'transition-speed':       '0.5s',
@@ -236,7 +250,7 @@ QUnit.test('u.lessConsts', function(assert) {
     'item-max-height':        '120px'
   };
 
-  u.lessConsts({uri: 'variables.less.txt'})
+  u.parseLessConsts({uri: 'variables.less.txt'})
     .then(function(act) {
       assert.deepEqual(act, exp);
       done();

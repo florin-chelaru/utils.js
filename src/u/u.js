@@ -64,6 +64,26 @@ u.copy = function(obj) {
 };
 
 /**
+ * Extends the properties of dst with those of the other arguments of the function;
+ * values corresponding to common keys are overriden.
+ * @param {Object} dst
+ * @param {...Object} src
+ * @returns {Object}
+ */
+u.extend = function(dst, src) {
+  if (arguments.length <= 1) { return dst; }
+  for (var i = 1; i < arguments.length; ++i) {
+    var s = arguments[i];
+    for (var key in s) {
+      if (!s.hasOwnProperty(key)) { continue; }
+      dst[key] = s[key];
+    }
+  }
+
+  return dst;
+};
+
+/**
  * @const {string}
  */
 u.CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -88,7 +108,7 @@ u.generatePseudoGUID = function(size) {
  * @param {string} uri
  * @returns {Promise}
  */
-u.get = function(uri) {
+u.httpGet = function(uri) {
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', uri, true);
@@ -109,13 +129,13 @@ u.get = function(uri) {
  * @param {{uri: (string|undefined), content: (string|undefined)}} opts
  * @returns {Promise} Promise.<Object.<string, string>>
  */
-u.lessConsts = function(opts) {
+u.parseLessConsts = function(opts) {
   return new Promise(function(resolve, reject) {
     if (!opts || (!opts['content'] && !opts['uri'])) { resolve({}); return; }
     if (!opts['content']) {
-      u.get(opts['uri'])
+      u.httpGet(opts['uri'])
         .then(function(content) {
-          return u.lessConsts({content: content});
+          return u.parseLessConsts({content: content});
         })
         .then(resolve);
       return;
