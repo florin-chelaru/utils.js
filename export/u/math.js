@@ -7,3 +7,4 @@
 goog.require('u.math');
 
 goog.exportSymbol('u.math.floorPrecision', u.math.floorPrecision);
+goog.exportSymbol('u.math.scaleLinear', u.math.scaleLinear);

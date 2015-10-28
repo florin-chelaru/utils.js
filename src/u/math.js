@@ -16,3 +16,16 @@ u.math.floorPrecision = function(x, precision) {
   var m = Math.pow(10, precision);
   return Math.floor(x * m) / m;
 };
+
+/**
+ * Lightweight linear scale function for use outside the DOM (as opposed to d3.scale.linear
+ * @param {Array.<number>} domain An array with exactly two arguments: lower and upper bound of the range
+ * @param {Array.<number>} range An array with exactly two arguments: lower and upper bound of the range
+ * @returns {function(number): number}
+ */
+u.math.scaleLinear = function(domain, range) {
+  var domainSize = domain[1] - domain[0];
+  var rangeSize = range[1] - range[0];
+  var r = rangeSize / domainSize;
+  return function(x) { return range[0] + (x - domain[0]) * r; };
+};
