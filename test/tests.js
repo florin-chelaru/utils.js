@@ -337,6 +337,7 @@ QUnit.test('u.reflection.wrap', function(assert) {
   wrapped.x = 20;
   assert.equal(wrapped.x, 20);
   assert.equal(wrapped.x, obj.x);
+  assert.equal(JSON.stringify(wrapped), JSON.stringify(obj));
 });
 
 QUnit.test('u.reflection.ReflectionException', function(assert) {

@@ -85,7 +85,9 @@ u.reflection.wrap = function(o, type) {
     (function(p) {
       props[p] = {
         get: function() { return o[p]; },
-        set: function(value) { o[p] = value; }
+        set: function(value) { o[p] = value; },
+        configurable: true,
+        enumerable: true
       };
     })(p);
   }
