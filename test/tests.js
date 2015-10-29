@@ -122,9 +122,15 @@ QUnit.test('u.Event', function(assert) {
 
   var finished = false;
   var exp = {'a': 'b', 'x': 7, 9: 'z'};
+  var t = false;
+  u.Event.TIMEOUT = function(callback, delay) {
+    t = true;
+    return setTimeout(callback, delay);
+  };
 
   var e = new u.Event();
   e.addListener(function(obj) {
+    assert.ok(t);
     assert.equal(obj, exp);
     finished = true;
     done();

@@ -9,7 +9,7 @@ goog.provide('u.Event');
 goog.require('u.EventListener');
 
 /**
- * @param {{synchronous: (boolean|undefined), timeout: (function(Function, number)|undefined)}} [options]
+ * @param {{synchronous: (boolean|undefined), timeout: (function(Function, number, ...)|undefined)}} [options]
  * @constructor
  * @template T
  */
@@ -42,11 +42,16 @@ u.Event = function(options) {
   this._firing = false;
 
   /**
-   * @type {function(Function, number)}
+   * @type {function(Function, number, ...)}
    * @private
    */
-  this._timeout = (options && options.timeout) ? options.timeout : setTimeout;
+  this._timeout = (options && options.timeout) ? options.timeout : u.Event['TIMEOUT'];
 };
+
+/**
+ * @type {function(Function, number, ...)}
+ */
+u.Event['TIMEOUT'] = setTimeout;
 
 /**
  * @type {boolean}
