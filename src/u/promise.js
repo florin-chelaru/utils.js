@@ -55,25 +55,23 @@ goog.provide('u.Promise');
     this._rejectedReason = undefined;
 
     var self = this;
-    setTimeout(function() {
-      try {
-        resolver(
-          // Resolve
-          function (value) {
-            self._resolved = true;
-            self._resolvedVal = value;
-            self._callAllFulfilled(value);
-          },
-          // Reject
-          function (reason) {
-            self._rejected = true;
-            self._rejectedReason = reason;
-            self._callAllRejected(reason);
-          });
-      } catch (err) {
-        self._callAllRejected(err);
-      }
-    }, 0);
+    try {
+      resolver(
+        // Resolve
+        function (value) {
+          self._resolved = true;
+          self._resolvedVal = value;
+          self._callAllFulfilled(value);
+        },
+        // Reject
+        function (reason) {
+          self._rejected = true;
+          self._rejectedReason = reason;
+          self._callAllRejected(reason);
+        });
+    } catch (err) {
+      self._callAllRejected(err);
+    }
   };
 
   /**
