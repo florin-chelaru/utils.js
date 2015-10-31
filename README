@@ -1,1 +1,5 @@
 # Lightweight utility library for JavaScript
+
+Contains the following:
+
+* Simple exceptions that you can inherit - `u.Exception`, `u.AbstractMethodException`, `u.UnimplementedException`
