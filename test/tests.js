@@ -573,3 +573,58 @@ QUnit.test('u.async.Deferred', function(assert) {
     if (!finished) { done(); finished = true; }
   }, 200);
 });
+
+QUnit.test('u.log', function(assert) {
+  assert.ok(u.log.info);
+  assert.ok(u.log.warn);
+  assert.ok(u.log.error);
+
+  var infoCalls = 0;
+  var warnCalls = 0;
+  var errCalls = 0;
+  u.log.LOGGER = {
+    info: function() {
+      ++infoCalls;
+      return console.info.apply(console, arguments);
+    },
+    warn: function() {
+      ++warnCalls;
+      return console.warn.apply(console, arguments);
+    },
+    error: function() {
+      ++errCalls;
+      return console.error.apply(console, arguments);
+    }
+  };
+
+  u.log.info('info [no verbose]');
+  u.log.warn('warn [no verbose]');
+  u.log.error('error [no verbose]');
+  assert.notOk(infoCalls);
+  assert.notOk(warnCalls);
+  assert.notOk(errCalls);
+
+  u.log.VERBOSE = 'error';
+  u.log.info('info [verbose=error]');
+  u.log.warn('warn [verbose=error]');
+  u.log.error('error [verbose=error]');
+  assert.notOk(infoCalls);
+  assert.notOk(warnCalls);
+  assert.equal(errCalls, 1);
+
+  u.log.VERBOSE = 'warn';
+  u.log.info('info [verbose=warn]');
+  u.log.warn('warn [verbose=warn]');
+  u.log.error('error [verbose=warn]');
+  assert.notOk(infoCalls);
+  assert.equal(warnCalls, 1);
+  assert.equal(errCalls, 2);
+
+  u.log.VERBOSE = 'info';
+  u.log.info('info [verbose=info]');
+  u.log.warn('warn [verbose=info]');
+  u.log.error('error [verbose=info]');
+  assert.equal(infoCalls, 1);
+  assert.equal(warnCalls, 2);
+  assert.equal(errCalls, 3);
+});
