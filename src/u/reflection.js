@@ -65,7 +65,7 @@ u.reflection.evaluateFullyQualifiedTypeName = function(typeName, context) {
  * @template T
  */
 u.reflection.applyConstructor = function(ctor, params) {
-  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params))));
+  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params || []))));
 };
 
 /**

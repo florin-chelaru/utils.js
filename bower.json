@@ -11,7 +11,8 @@
   "keywords": [
     "utils",
     "reflection",
-    "exception"
+    "exception",
+    "promise polyfill"
   ],
   "license": "MIT",
   "ignore": [

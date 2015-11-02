@@ -18,523 +18,6 @@
 */
 
 
-goog.provide('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends Error
- */
-u.Exception = function(message, innerException) {
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._errorCore = new Error(message);
-
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._innerException = innerException || null;
-
-  /**
-   * @type {string}
-   */
-  this.message = this._errorCore.message;
-
-  /**
-   * @type {string}
-   */
-  this.name = 'Exception';
-};
-
-goog.inherits(u.Exception, Error);
-
-Object.defineProperties(u.Exception.prototype, {
-  /**
-   * @property
-   * @type {string}
-   * @name u.Exception#stack
-   */
-  'stack': /** @type {string} */ ({
-    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
-  }),
-
-  /**
-   * @property
-   * @type {Error}
-   * @name u.Exception#innerException
-   */
-  'innerException': /** @type {Error} */ ({
-    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
-  })
-});
-
-
-goog.provide('u.array');
-
-/**
- * @param {Arguments|Array} args
- * @returns {Array}
- */
-u.array.fromArguments = function(args) {
-  return /** @type {Array} */ (Array.isArray(args) ? args : [].slice.apply(args));
-};
-
-/**
- * Creates an array of length n filled with value
- * @param {number} n
- * @param {*} value
- * @returns {Array}
- */
-u.array.fill = function(n, value) {
-  n = n || 0;
-  var ret = new Array(n);
-  for (var i = 0; i < n; ++i) { ret[i] = value; }
-  return ret;
-};
-
-/**
- * Generates an array of consecutive numbers starting from start, or 0 if it's not defined
- * @param {number} n
- * @param {number} [start]
- * @returns {Array.<number>}
- */
-u.array.range = function(n, start) {
-  start = start || 0;
-  n = n || 0;
-
-  var result = new Array(n);
-  for (var i = 0; i < n; ++i) {
-    result[i] = i + start;
-  }
-
-  return result;
-};
-
-/**
- * Returns a new array where all elements are unique
- * Complexity is suboptimal: O(n^2); for strings and numbers,
- * it can be done faster, using a map
- * @param {Array} arr
- * @returns {Array}
- */
-u.array.unique = function(arr) {
-  return arr.reduce(function(result, item) {
-    if (result.indexOf(item) < 0) { result.push(item); }
-    return result;
-  }, []);
-};
-
-
-goog.provide('u.reflection');
-goog.require('u.array');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.reflection.ReflectionException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'ReflectionException';
-};
-
-goog.inherits(u.reflection.ReflectionException, u.Exception);
-
-
-/**
- * Evaluates the given string into a constructor for a type
- * @param {string} typeName
- * @param {Object} [context]
- * @returns {function(new: T)}
- * @template T
- */
-u.reflection.evaluateFullyQualifiedTypeName = function(typeName, context) {
-  var result;
-
-  try {
-    var namespaces = typeName.split('.');
-    var func = namespaces.pop();
-    var ctx = context || window;
-    for (var i = 0; i < namespaces.length; ++i) {
-      ctx = ctx[namespaces[i]];
-    }
-    result = ctx[func];
-  } catch (error) {
-    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName, error);
-  }
-
-  if (typeof(result) !== 'function') {
-    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName);
-  }
-
-  return result;
-};
-
-/**
- * Applies the given constructor to the given parameters and creates
- * a new instance of the class it defines
- * @param {function(new: T)} ctor
- * @param {Array|Arguments} params
- * @returns {T}
- * @template T
- */
-u.reflection.applyConstructor = function(ctor, params) {
-  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params))));
-};
-
-/**
- * Wraps given type around the given object, so the object's prototype matches the one of the type
- * @param {Object} o
- * @param {function(new: T)} type
- * @returns {T}
- * @template T
- */
-u.reflection.wrap = function(o, type) {
-  //o.__proto__ = type.prototype;
-  //return o;
-
-  var props = {};
-  for (var p in o) {
-    if (!o.hasOwnProperty(p)) { continue; }
-    (function(p) {
-      props[p] = {
-        get: function() { return o[p]; },
-        set: function(value) { o[p] = value; },
-        configurable: true,
-        enumerable: true
-      };
-    })(p);
-  }
-
-  return Object.create(type.prototype, props);
-};
-
-
-goog.provide('u.async');
-goog.require('u.array');
-goog.require('u.reflection');
-
-/**
- * @param {Array.<function(): Promise>} jobs
- * @param {boolean} [inOrder] If true, the jobs are executed in order, otherwise, in parallel
- * @returns {Promise}
- */
-u.async.all = function(jobs, inOrder) {
-  if (inOrder) {  return u.async.each(jobs, function(job) { return job(); }, inOrder); }
-  return Promise.all(jobs.map(function(job) { return job(); }));
-};
-
-/**
- * @param {number} n
- * @param {function(number, (number|undefined)): Promise} iteration
- * @param {boolean} [inOrder]
- * @returns {Promise}
- */
-u.async.for = function(n, iteration, inOrder) {
-  return u.async.each(u.array.range(n), iteration, inOrder);
-};
-
-/**
- * @param {function(number): Promise} iteration
- * @returns {Promise}
- */
-u.async.do = function(iteration) {
-  return new Promise(function(resolve, reject) {
-    var i = 0;
-    var it = function() {
-      return iteration(i++).then(function(condition) {
-        return !condition || it();
-      });
-    };
-    it().then(resolve);
-  });
-};
-
-/**
- * @param {Array.<T>} items
- * @param {function(T, number): Promise} iteration
- * @param {boolean} [inOrder]
- * @returns {Promise}
- * @template T
- */
-u.async.each = function(items, iteration, inOrder) {
-  if (inOrder) {
-    return new Promise(function(resolve, reject) {
-      if (!items || !items.length) {
-        resolve();
-      }
-
-      var d, remaining;
-      d = new Array(items.length+1);
-      d[0] = new Promise(function(resolve) { resolve(); });
-
-      items.forEach(function(item, i) {
-        d[i + 1] = d[i].then(function() { return iteration.call(null, item, i); });
-      });
-
-      d[items.length].then(resolve);
-    });
-  } else {
-    return Promise.all(items.map(function(item, i) { return iteration(item, i); }));
-  }
-};
-
-/**
- * @constructor
- * @template T
- */
-u.async.Deferred = function() {
-  /**
-   * @type {Function}
-   * @private
-   */
-  this._resolve = null;
-
-  /**
-   * @type {Function}
-   * @private
-   */
-  this._reject = null;
-
-  var self = this;
-
-  /**
-   * @type {Promise}
-   * @private
-   */
-  this._promise = new Promise(function() { self._resolve = arguments[0]; self._reject = arguments[1]; });
-};
-
-/**
- * @param {T} [value]
- */
-u.async.Deferred.prototype.resolve = function(value) {
-  this._resolve.call(this._promise, value);
-};
-
-/**
- * @param {*} [reason]
- */
-u.async.Deferred.prototype.reject = function(reason) {
-  this._reject.call(this._promise, reason);
-};
-
-/**
- * @param {function((T|undefined))} [onFulfilled]
- * @param {function(*)} [onRejected]
- * @returns {Promise}
- */
-u.async.Deferred.prototype.then = function(onFulfilled, onRejected) {
-  return this._promise.then(onFulfilled, onRejected);
-};
-
-/**
- * @param {function(*)} onRejected
- * @returns {Promise}
- */
-u.async.Deferred.prototype.catch = function(onRejected) {
-  return this._promise.catch(onRejected);
-};
-
-
-goog.provide('u.Promise');
-
-(function(window) {
-  if ('Promise' in window) { return; }
-
-  /**
-   * @param {function(function(*), function(*))} resolver
-   * @constructor
-   */
-  var PromisePolyfill = function(resolver) {
-    if (typeof resolver != 'function') {
-      throw new TypeError('Promise resolver ' + resolver + ' is not a function');
-    }
-
-    /**
-     * @type {Array.<Function>}
-     * @private
-     */
-    this._fulfilledCallbacks = [];
-
-    /**
-     * @type {Array.<Function>}
-     * @private
-     */
-    this._rejectedCallbacks = [];
-
-    /**
-     * @type {boolean}
-     * @private
-     */
-    this._resolved = false;
-
-    /**
-     * @type {boolean}
-     * @private
-     */
-    this._rejected = false;
-
-    /**
-     * @type {*}
-     * @private
-     */
-    this._resolvedVal = undefined;
-
-    /**
-     * @type {*}
-     * @private
-     */
-    this._rejectedReason = undefined;
-
-    var self = this;
-    try {
-      resolver(
-        // Resolve
-        function (value) {
-          self._resolved = true;
-          self._resolvedVal = value;
-          self._callAllFulfilled(value);
-        },
-        // Reject
-        function (reason) {
-          self._rejected = true;
-          self._rejectedReason = reason;
-          self._callAllRejected(reason);
-        });
-    } catch (err) {
-      self._callAllRejected(err);
-    }
-  };
-
-  /**
-   * @param {function(*)} [onFulfilled]
-   * @param {function(*)} [onRejected]
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill.prototype['then'] = function (onFulfilled, onRejected) {
-    var resolve, reject;
-    var ret = new PromisePolyfill(function() { resolve = arguments[0]; reject = arguments[1]; });
-    var fulfilledWrapper, rejectedWrapper;
-    if (typeof onFulfilled == 'function') {
-      fulfilledWrapper = function(value) {
-        try {
-          var next = onFulfilled.call(null, value);
-          if (next instanceof PromisePolyfill) {
-            next['then'](resolve, reject);
-          } else {
-            resolve(next);
-          }
-        } catch (err) {
-          reject(err);
-        }
-      };
-      this._fulfilledCallbacks.push(fulfilledWrapper);
-    }
-    if (typeof onRejected == 'function') {
-      rejectedWrapper = function(reason) {
-        try {
-          var next = onRejected.call(null, reason);
-          if (next instanceof PromisePolyfill) {
-            next['then'](resolve, reject);
-          } else {
-            resolve(next);
-          }
-        } catch (err) {
-          reject(err);
-        }
-      };
-      this._rejectedCallbacks.push(rejectedWrapper);
-    }
-
-    var self = this;
-    if (this._resolved) {
-      setTimeout(function() { fulfilledWrapper.call(null, self._resolvedVal); }, 0);
-    } else if (this._rejected) {
-      setTimeout(function() { rejectedWrapper.call(null, self._rejectedReason); }, 0);
-    }
-
-    return ret;
-  };
-
-  /**
-   * @param {function(*)} [onRejected]
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill.prototype['catch'] = function(onRejected) { return this['then'](undefined, onRejected); };
-
-  /**
-   * @param {T} value
-   * @template T
-   */
-  PromisePolyfill.prototype._callAllFulfilled = function(value) {
-    this._fulfilledCallbacks.forEach(function(callback) {
-      setTimeout(function() {  console.log('calling resolve callback with value ' + value); callback.call(null, value); }, 0);
-    });
-    this._fulfilledCallbacks = [];
-  };
-
-  /**
-   * @param {*} reason
-   */
-  PromisePolyfill.prototype._callAllRejected = function(reason) {
-    this._rejectedCallbacks.forEach(function(callback) {
-      setTimeout(function() {  callback.call(null, reason); }, 0);
-    });
-    this._rejectedCallbacks = [];
-  };
-
-  /**
-   * @param {*} [value]
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill['resolve'] = function(value) { return new PromisePolyfill(function(resolve) { resolve(value); }); };
-
-  /**
-   * @param {*} [reason]
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill['reject'] = function(reason) { return new PromisePolyfill(function(resolve, reject) { reject(reason); }); };
-
-  /**
-   * @param {Array} promises
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill['all'] = function(promises) {
-    if (!promises || !promises.length) { return PromisePolyfill['resolve'](); }
-    return new PromisePolyfill(function(resolve, reject) {
-      var ret = new Array(promises.length);
-      var remaining = promises.length;
-      promises.forEach(function(promise, i) {
-        var p = (promise instanceof PromisePolyfill) ? promise : PromisePolyfill['resolve'](promise);
-        p['then'](
-          function(value) {
-            ret[i] = value;
-            --remaining;
-            if (!remaining) { resolve(ret); }
-          },
-          function(reason) {
-            reject(reason);
-          });
-      });
-    });
-  };
-
-  window['Promise'] = PromisePolyfill;
-})(this);
-
-
 goog.provide('u.Geolocation');
 
 /**
@@ -720,103 +203,6 @@ u.parseLessConsts = function(opts) {
     pairs.forEach(function(pair) { ret[pair[0].substr(1)] = pair[1]; });
     resolve(ret);
   });
-};
-
-
-goog.provide('u.math');
-
-/**
- * @param {number} x
- * @param {number} precision
- * @returns {number}
- */
-u.math.floorPrecision = function(x, precision) {
-  if (precision == 0) { return Math.floor(x); }
-  var m = Math.pow(10, precision);
-  return Math.floor(x * m) / m;
-};
-
-/**
- * Lightweight linear scale function for use outside the DOM (as opposed to d3.scale.linear
- * @param {Array.<number>} domain An array with exactly two arguments: lower and upper bound of the range
- * @param {Array.<number>} range An array with exactly two arguments: lower and upper bound of the range
- * @returns {function(number): number}
- */
-u.math.scaleLinear = function(domain, range) {
-  var domainSize = domain[1] - domain[0];
-  var rangeSize = range[1] - range[0];
-  var r = rangeSize / domainSize;
-  return function(x) { return range[0] + (x - domain[0]) * r; };
-};
-
-
-goog.provide('u.string');
-
-/**
- * @param {string} text
- * @returns {string}
- */
-u.string.capitalizeFirstLetter = function (text) {
-  if (!text) { return text; }
-  return text.charAt(0).toUpperCase() + text.slice(1);
-};
-
-
-goog.provide('u.AbstractMethodException');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.AbstractMethodException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'AbstractMethodException';
-};
-
-goog.inherits(u.AbstractMethodException, u.Exception);
-
-
-goog.provide('u.log');
-
-/**
- * @param {...} args
- */
-u.log.info = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (verbose != 'info') { return; }
-
-  var logger = u.log['LOGGER'] || console;
-  logger.info.apply(logger, arguments);
-};
-
-/**
- * @param {...} args
- */
-u.log.warn = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (['warn', 'info'].indexOf(verbose) < 0) { return; }
-
-  var logger = u.log['LOGGER'] || console;
-  logger.warn.apply(logger, arguments);
-};
-
-/**
- * @param {...} args
- */
-u.log.error = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (['error', 'warn', 'info'].indexOf(verbose) < 0) { return; }
-
-  var logger = u.log['LOGGER'] || console;
-  logger.error.apply(logger, arguments);
 };
 
 
@@ -1037,6 +423,258 @@ u.TimeSpan.prototype.toString = function() {
 
 
 
+goog.provide('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends Error
+ */
+u.Exception = function(message, innerException) {
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._errorCore = new Error(message);
+
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._innerException = innerException || null;
+
+  /**
+   * @type {string}
+   */
+  this.message = this._errorCore.message;
+
+  /**
+   * @type {string}
+   */
+  this.name = 'Exception';
+};
+
+goog.inherits(u.Exception, Error);
+
+Object.defineProperties(u.Exception.prototype, {
+  /**
+   * @property
+   * @type {string}
+   * @name u.Exception#stack
+   */
+  'stack': /** @type {string} */ ({
+    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
+  }),
+
+  /**
+   * @property
+   * @type {Error}
+   * @name u.Exception#innerException
+   */
+  'innerException': /** @type {Error} */ ({
+    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
+  })
+});
+
+
+goog.provide('u.array');
+
+/**
+ * @param {Arguments|Array} args
+ * @returns {Array}
+ */
+u.array.fromArguments = function(args) {
+  return /** @type {Array} */ (Array.isArray(args) ? args : [].slice.apply(args));
+};
+
+/**
+ * Creates an array of length n filled with value
+ * @param {number} n
+ * @param {*} value
+ * @returns {Array}
+ */
+u.array.fill = function(n, value) {
+  n = n || 0;
+  var ret = new Array(n);
+  for (var i = 0; i < n; ++i) { ret[i] = value; }
+  return ret;
+};
+
+/**
+ * Generates an array of consecutive numbers starting from start, or 0 if it's not defined
+ * @param {number} n
+ * @param {number} [start]
+ * @returns {Array.<number>}
+ */
+u.array.range = function(n, start) {
+  start = start || 0;
+  n = n || 0;
+
+  var result = new Array(n);
+  for (var i = 0; i < n; ++i) {
+    result[i] = i + start;
+  }
+
+  return result;
+};
+
+/**
+ * Returns a new array where all elements are unique
+ * Complexity is suboptimal: O(n^2); for strings and numbers,
+ * it can be done faster, using a map
+ * @param {Array} arr
+ * @returns {Array}
+ */
+u.array.unique = function(arr) {
+  return arr.reduce(function(result, item) {
+    if (result.indexOf(item) < 0) { result.push(item); }
+    return result;
+  }, []);
+};
+
+
+goog.provide('u.reflection');
+goog.require('u.array');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.reflection.ReflectionException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'ReflectionException';
+};
+
+goog.inherits(u.reflection.ReflectionException, u.Exception);
+
+
+/**
+ * Evaluates the given string into a constructor for a type
+ * @param {string} typeName
+ * @param {Object} [context]
+ * @returns {function(new: T)}
+ * @template T
+ */
+u.reflection.evaluateFullyQualifiedTypeName = function(typeName, context) {
+  var result;
+
+  try {
+    var namespaces = typeName.split('.');
+    var func = namespaces.pop();
+    var ctx = context || window;
+    for (var i = 0; i < namespaces.length; ++i) {
+      ctx = ctx[namespaces[i]];
+    }
+    result = ctx[func];
+  } catch (error) {
+    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName, error);
+  }
+
+  if (typeof(result) !== 'function') {
+    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName);
+  }
+
+  return result;
+};
+
+/**
+ * Applies the given constructor to the given parameters and creates
+ * a new instance of the class it defines
+ * @param {function(new: T)} ctor
+ * @param {Array|Arguments} params
+ * @returns {T}
+ * @template T
+ */
+u.reflection.applyConstructor = function(ctor, params) {
+  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params || []))));
+};
+
+/**
+ * Wraps given type around the given object, so the object's prototype matches the one of the type
+ * @param {Object} o
+ * @param {function(new: T)} type
+ * @returns {T}
+ * @template T
+ */
+u.reflection.wrap = function(o, type) {
+  //o.__proto__ = type.prototype;
+  //return o;
+
+  var props = {};
+  for (var p in o) {
+    if (!o.hasOwnProperty(p)) { continue; }
+    (function(p) {
+      props[p] = {
+        get: function() { return o[p]; },
+        set: function(value) { o[p] = value; },
+        configurable: true,
+        enumerable: true
+      };
+    })(p);
+  }
+
+  return Object.create(type.prototype, props);
+};
+
+
+goog.provide('u.UnimplementedException');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.UnimplementedException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'UnimplementedException';
+};
+
+goog.inherits(u.UnimplementedException, u.Exception);
+
+
+goog.provide('u.math');
+
+/**
+ * @param {number} x
+ * @param {number} precision
+ * @returns {number}
+ */
+u.math.floorPrecision = function(x, precision) {
+  if (precision == 0) { return Math.floor(x); }
+  var m = Math.pow(10, precision);
+  return Math.floor(x * m) / m;
+};
+
+/**
+ * Lightweight linear scale function for use outside the DOM (as opposed to d3.scale.linear
+ * @param {Array.<number>} domain An array with exactly two arguments: lower and upper bound of the range
+ * @param {Array.<number>} range An array with exactly two arguments: lower and upper bound of the range
+ * @returns {function(number): number}
+ */
+u.math.scaleLinear = function(domain, range) {
+  var domainSize = domain[1] - domain[0];
+  var rangeSize = range[1] - range[0];
+  var r = rangeSize / domainSize;
+  return function(x) { return range[0] + (x - domain[0]) * r; };
+};
+
+
 goog.provide('u.EventListener');
 
 /**
@@ -1220,7 +858,194 @@ u.Event.prototype.fire = function(args) {
 };
 
 
-goog.provide('u.UnimplementedException');
+goog.provide('u.Promise');
+
+(function(window) {
+  if ('Promise' in window) { return; }
+
+  /**
+   * @param {function(function(*), function(*))} resolver
+   * @constructor
+   */
+  var PromisePolyfill = function(resolver) {
+    if (typeof resolver != 'function') {
+      throw new TypeError('Promise resolver ' + resolver + ' is not a function');
+    }
+
+    /**
+     * @type {Array.<Function>}
+     * @private
+     */
+    this._fulfilledCallbacks = [];
+
+    /**
+     * @type {Array.<Function>}
+     * @private
+     */
+    this._rejectedCallbacks = [];
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this._resolved = false;
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this._rejected = false;
+
+    /**
+     * @type {*}
+     * @private
+     */
+    this._resolvedVal = undefined;
+
+    /**
+     * @type {*}
+     * @private
+     */
+    this._rejectedReason = undefined;
+
+    var self = this;
+    try {
+      resolver(
+        // Resolve
+        function (value) {
+          self._resolved = true;
+          self._resolvedVal = value;
+          self._callAllFulfilled(value);
+        },
+        // Reject
+        function (reason) {
+          self._rejected = true;
+          self._rejectedReason = reason;
+          self._callAllRejected(reason);
+        });
+    } catch (err) {
+      self._callAllRejected(err);
+    }
+  };
+
+  /**
+   * @param {function(*)} [onFulfilled]
+   * @param {function(*)} [onRejected]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill.prototype['then'] = function (onFulfilled, onRejected) {
+    var resolve, reject;
+    var ret = new PromisePolyfill(function() { resolve = arguments[0]; reject = arguments[1]; });
+    var fulfilledWrapper, rejectedWrapper;
+    if (typeof onFulfilled == 'function') {
+      fulfilledWrapper = function(value) {
+        try {
+          var next = onFulfilled.call(null, value);
+          if (next instanceof PromisePolyfill) {
+            next['then'](resolve, reject);
+          } else {
+            resolve(next);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+      this._fulfilledCallbacks.push(fulfilledWrapper);
+    }
+    if (typeof onRejected == 'function') {
+      rejectedWrapper = function(reason) {
+        try {
+          var next = onRejected.call(null, reason);
+          if (next instanceof PromisePolyfill) {
+            next['then'](resolve, reject);
+          } else {
+            resolve(next);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+      this._rejectedCallbacks.push(rejectedWrapper);
+    }
+
+    var self = this;
+    if (this._resolved) {
+      setTimeout(function() { fulfilledWrapper.call(null, self._resolvedVal); }, 0);
+    } else if (this._rejected) {
+      setTimeout(function() { rejectedWrapper.call(null, self._rejectedReason); }, 0);
+    }
+
+    return ret;
+  };
+
+  /**
+   * @param {function(*)} [onRejected]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill.prototype['catch'] = function(onRejected) { return this['then'](undefined, onRejected); };
+
+  /**
+   * @param {T} value
+   * @template T
+   */
+  PromisePolyfill.prototype._callAllFulfilled = function(value) {
+    this._fulfilledCallbacks.forEach(function(callback) {
+      setTimeout(function() {  console.log('calling resolve callback with value ' + value); callback.call(null, value); }, 0);
+    });
+    this._fulfilledCallbacks = [];
+  };
+
+  /**
+   * @param {*} reason
+   */
+  PromisePolyfill.prototype._callAllRejected = function(reason) {
+    this._rejectedCallbacks.forEach(function(callback) {
+      setTimeout(function() {  callback.call(null, reason); }, 0);
+    });
+    this._rejectedCallbacks = [];
+  };
+
+  /**
+   * @param {*} [value]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['resolve'] = function(value) { return new PromisePolyfill(function(resolve) { resolve(value); }); };
+
+  /**
+   * @param {*} [reason]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['reject'] = function(reason) { return new PromisePolyfill(function(resolve, reject) { reject(reason); }); };
+
+  /**
+   * @param {Array} promises
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['all'] = function(promises) {
+    if (!promises || !promises.length) { return PromisePolyfill['resolve'](); }
+    return new PromisePolyfill(function(resolve, reject) {
+      var ret = new Array(promises.length);
+      var remaining = promises.length;
+      promises.forEach(function(promise, i) {
+        var p = (promise instanceof PromisePolyfill) ? promise : PromisePolyfill['resolve'](promise);
+        p['then'](
+          function(value) {
+            ret[i] = value;
+            --remaining;
+            if (!remaining) { resolve(ret); }
+          },
+          function(reason) {
+            reject(reason);
+          });
+      });
+    });
+  };
+
+  window['Promise'] = PromisePolyfill;
+})(this);
+
+
+goog.provide('u.AbstractMethodException');
 
 goog.require('u.Exception');
 
@@ -1230,13 +1055,188 @@ goog.require('u.Exception');
  * @constructor
  * @extends u.Exception
  */
-u.UnimplementedException = function(message, innerException) {
+u.AbstractMethodException = function(message, innerException) {
   u.Exception.apply(this, arguments);
 
   /**
    * @type {string}
    */
-  this.name = 'UnimplementedException';
+  this.name = 'AbstractMethodException';
 };
 
-goog.inherits(u.UnimplementedException, u.Exception);
+goog.inherits(u.AbstractMethodException, u.Exception);
+
+
+goog.provide('u.async');
+goog.require('u.array');
+goog.require('u.reflection');
+
+/**
+ * @param {Array.<function(): Promise>} jobs
+ * @param {boolean} [inOrder] If true, the jobs are executed in order, otherwise, in parallel
+ * @returns {Promise}
+ */
+u.async.all = function(jobs, inOrder) {
+  if (inOrder) {  return u.async.each(jobs, function(job) { return job(); }, inOrder); }
+  return Promise.all(jobs.map(function(job) { return job(); }));
+};
+
+/**
+ * @param {number} n
+ * @param {function(number, (number|undefined)): Promise} iteration
+ * @param {boolean} [inOrder]
+ * @returns {Promise}
+ */
+u.async.for = function(n, iteration, inOrder) {
+  return u.async.each(u.array.range(n), iteration, inOrder);
+};
+
+/**
+ * @param {function(number): Promise} iteration
+ * @returns {Promise}
+ */
+u.async.do = function(iteration) {
+  return new Promise(function(resolve, reject) {
+    var i = 0;
+    var it = function() {
+      return iteration(i++).then(function(condition) {
+        return !condition || it();
+      });
+    };
+    it().then(resolve);
+  });
+};
+
+/**
+ * @param {Array.<T>} items
+ * @param {function(T, number): Promise} iteration
+ * @param {boolean} [inOrder]
+ * @returns {Promise}
+ * @template T
+ */
+u.async.each = function(items, iteration, inOrder) {
+  if (inOrder) {
+    return new Promise(function(resolve, reject) {
+      if (!items || !items.length) {
+        resolve();
+      }
+
+      var d, remaining;
+      d = new Array(items.length+1);
+      d[0] = new Promise(function(resolve) { resolve(); });
+
+      items.forEach(function(item, i) {
+        d[i + 1] = d[i].then(function() { return iteration.call(null, item, i); });
+      });
+
+      d[items.length].then(resolve);
+    });
+  } else {
+    return Promise.all(items.map(function(item, i) { return iteration(item, i); }));
+  }
+};
+
+/**
+ * @constructor
+ * @template T
+ */
+u.async.Deferred = function() {
+  /**
+   * @type {Function}
+   * @private
+   */
+  this._resolve = null;
+
+  /**
+   * @type {Function}
+   * @private
+   */
+  this._reject = null;
+
+  var self = this;
+
+  /**
+   * @type {Promise}
+   * @private
+   */
+  this._promise = new Promise(function() { self._resolve = arguments[0]; self._reject = arguments[1]; });
+};
+
+/**
+ * @param {T} [value]
+ */
+u.async.Deferred.prototype.resolve = function(value) {
+  this._resolve.call(this._promise, value);
+};
+
+/**
+ * @param {*} [reason]
+ */
+u.async.Deferred.prototype.reject = function(reason) {
+  this._reject.call(this._promise, reason);
+};
+
+/**
+ * @param {function((T|undefined))} [onFulfilled]
+ * @param {function(*)} [onRejected]
+ * @returns {Promise}
+ */
+u.async.Deferred.prototype.then = function(onFulfilled, onRejected) {
+  return this._promise.then(onFulfilled, onRejected);
+};
+
+/**
+ * @param {function(*)} onRejected
+ * @returns {Promise}
+ */
+u.async.Deferred.prototype.catch = function(onRejected) {
+  return this._promise.catch(onRejected);
+};
+
+
+goog.provide('u.string');
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+u.string.capitalizeFirstLetter = function (text) {
+  if (!text) { return text; }
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+
+goog.provide('u.log');
+
+/**
+ * @param {...} args
+ */
+u.log.info = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (verbose != 'info') { return; }
+
+  var logger = u.log['LOGGER'] || console;
+  logger.info.apply(logger, arguments);
+};
+
+/**
+ * @param {...} args
+ */
+u.log.warn = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (['warn', 'info'].indexOf(verbose) < 0) { return; }
+
+  var logger = u.log['LOGGER'] || console;
+  logger.warn.apply(logger, arguments);
+};
+
+/**
+ * @param {...} args
+ */
+u.log.error = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (['error', 'warn', 'info'].indexOf(verbose) < 0) { return; }
+
+  var logger = u.log['LOGGER'] || console;
+  logger.error.apply(logger, arguments);
+};
