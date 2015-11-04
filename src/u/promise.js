@@ -136,7 +136,7 @@ goog.provide('u.Promise');
    */
   PromisePolyfill.prototype._callAllFulfilled = function(value) {
     this._fulfilledCallbacks.forEach(function(callback) {
-      setTimeout(function() {  console.log('calling resolve callback with value ' + value); callback.call(null, value); }, 0);
+      setTimeout(function() {  callback.call(null, value); }, 0);
     });
     this._fulfilledCallbacks = [];
   };

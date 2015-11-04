@@ -18,46 +18,6 @@
 */
 
 
-goog.provide('u.Geolocation');
-
-/**
- * @param {number} [lat]
- * @param {number} [lng]
- * @param {number} [zoom]
- * @param {number} [range]
- * @constructor
- */
-u.Geolocation = function(lat, lng, zoom, range) {
-  /**
-   * @type {number}
-   */
-  this['lat'] = lat || 0;
-
-  /**
-   * @type {number}
-   */
-  this['lng'] = lng || 0;
-
-  /**
-   * @type {number}
-   */
-  this['zoom'] = zoom || 0;
-
-  /**
-   * @type {number}
-   */
-  this['range'] = range || 0;
-};
-
-/**
- * @param {u.Geolocation|{lat: number, lng: number, zoom: number}} other
- */
-u.Geolocation.prototype.equals = function(other) {
-  if (other == undefined) { return false; }
-  return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'] && this['range'] == other['range'];
-};
-
-
 goog.provide('u');
 
 /**
@@ -423,61 +383,6 @@ u.TimeSpan.prototype.toString = function() {
 
 
 
-goog.provide('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends Error
- */
-u.Exception = function(message, innerException) {
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._errorCore = new Error(message);
-
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._innerException = innerException || null;
-
-  /**
-   * @type {string}
-   */
-  this.message = this._errorCore.message;
-
-  /**
-   * @type {string}
-   */
-  this.name = 'Exception';
-};
-
-goog.inherits(u.Exception, Error);
-
-Object.defineProperties(u.Exception.prototype, {
-  /**
-   * @property
-   * @type {string}
-   * @name u.Exception#stack
-   */
-  'stack': /** @type {string} */ ({
-    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
-  }),
-
-  /**
-   * @property
-   * @type {Error}
-   * @name u.Exception#innerException
-   */
-  'innerException': /** @type {Error} */ ({
-    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
-  })
-});
-
-
 goog.provide('u.array');
 
 /**
@@ -532,6 +437,61 @@ u.array.unique = function(arr) {
     return result;
   }, []);
 };
+
+
+goog.provide('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends Error
+ */
+u.Exception = function(message, innerException) {
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._errorCore = new Error(message);
+
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._innerException = innerException || null;
+
+  /**
+   * @type {string}
+   */
+  this.message = this._errorCore.message;
+
+  /**
+   * @type {string}
+   */
+  this.name = 'Exception';
+};
+
+goog.inherits(u.Exception, Error);
+
+Object.defineProperties(u.Exception.prototype, {
+  /**
+   * @property
+   * @type {string}
+   * @name u.Exception#stack
+   */
+  'stack': /** @type {string} */ ({
+    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
+  }),
+
+  /**
+   * @property
+   * @type {Error}
+   * @name u.Exception#innerException
+   */
+  'innerException': /** @type {Error} */ ({
+    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
+  })
+});
 
 
 goog.provide('u.reflection');
@@ -626,6 +586,173 @@ u.reflection.wrap = function(o, type) {
 };
 
 
+goog.provide('u.Geolocation');
+
+/**
+ * @param {number} [lat]
+ * @param {number} [lng]
+ * @param {number} [zoom]
+ * @param {number} [range]
+ * @constructor
+ */
+u.Geolocation = function(lat, lng, zoom, range) {
+  /**
+   * @type {number}
+   */
+  this['lat'] = lat || 0;
+
+  /**
+   * @type {number}
+   */
+  this['lng'] = lng || 0;
+
+  /**
+   * @type {number}
+   */
+  this['zoom'] = zoom || 0;
+
+  /**
+   * @type {number}
+   */
+  this['range'] = range || 0;
+};
+
+/**
+ * @param {u.Geolocation|{lat: number, lng: number, zoom: number}} other
+ */
+u.Geolocation.prototype.equals = function(other) {
+  if (other == undefined) { return false; }
+  return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'] && this['range'] == other['range'];
+};
+
+
+goog.provide('u.async');
+goog.require('u.array');
+goog.require('u.reflection');
+
+/**
+ * @param {Array.<function(): Promise>} jobs
+ * @param {boolean} [inOrder] If true, the jobs are executed in order, otherwise, in parallel
+ * @returns {Promise}
+ */
+u.async.all = function(jobs, inOrder) {
+  if (inOrder) {  return u.async.each(jobs, function(job) { return job(); }, inOrder); }
+  return Promise.all(jobs.map(function(job) { return job(); }));
+};
+
+/**
+ * @param {number} n
+ * @param {function(number, (number|undefined)): Promise} iteration
+ * @param {boolean} [inOrder]
+ * @returns {Promise}
+ */
+u.async.for = function(n, iteration, inOrder) {
+  return u.async.each(u.array.range(n), iteration, inOrder);
+};
+
+/**
+ * @param {function(number): Promise} iteration
+ * @returns {Promise}
+ */
+u.async.do = function(iteration) {
+  return new Promise(function(resolve, reject) {
+    var i = 0;
+    var it = function() {
+      return iteration(i++).then(function(condition) {
+        return !condition || it();
+      });
+    };
+    it().then(resolve);
+  });
+};
+
+/**
+ * @param {Array.<T>} items
+ * @param {function(T, number): Promise} iteration
+ * @param {boolean} [inOrder]
+ * @returns {Promise}
+ * @template T
+ */
+u.async.each = function(items, iteration, inOrder) {
+  if (inOrder) {
+    return new Promise(function(resolve, reject) {
+      if (!items || !items.length) {
+        resolve();
+      }
+
+      var d, remaining;
+      d = new Array(items.length+1);
+      d[0] = new Promise(function(resolve) { resolve(); });
+
+      items.forEach(function(item, i) {
+        d[i + 1] = d[i].then(function() { return iteration.call(null, item, i); });
+      });
+
+      d[items.length].then(resolve);
+    });
+  } else {
+    return Promise.all(items.map(function(item, i) { return iteration(item, i); }));
+  }
+};
+
+/**
+ * @constructor
+ * @template T
+ */
+u.async.Deferred = function() {
+  /**
+   * @type {Function}
+   * @private
+   */
+  this._resolve = null;
+
+  /**
+   * @type {Function}
+   * @private
+   */
+  this._reject = null;
+
+  var self = this;
+
+  /**
+   * @type {Promise}
+   * @private
+   */
+  this._promise = new Promise(function() { self._resolve = arguments[0]; self._reject = arguments[1]; });
+};
+
+/**
+ * @param {T} [value]
+ */
+u.async.Deferred.prototype.resolve = function(value) {
+  this._resolve.call(this._promise, value);
+};
+
+/**
+ * @param {*} [reason]
+ */
+u.async.Deferred.prototype.reject = function(reason) {
+  this._reject.call(this._promise, reason);
+};
+
+/**
+ * @param {function((T|undefined))} [onFulfilled]
+ * @param {function(*)} [onRejected]
+ * @returns {Promise}
+ */
+u.async.Deferred.prototype.then = function(onFulfilled, onRejected) {
+  return this._promise.then(onFulfilled, onRejected);
+};
+
+/**
+ * @param {function(*)} onRejected
+ * @returns {Promise}
+ */
+u.async.Deferred.prototype.catch = function(onRejected) {
+  return this._promise.catch(onRejected);
+};
+
+
 goog.provide('u.UnimplementedException');
 
 goog.require('u.Exception');
@@ -646,33 +773,6 @@ u.UnimplementedException = function(message, innerException) {
 };
 
 goog.inherits(u.UnimplementedException, u.Exception);
-
-
-goog.provide('u.math');
-
-/**
- * @param {number} x
- * @param {number} precision
- * @returns {number}
- */
-u.math.floorPrecision = function(x, precision) {
-  if (precision == 0) { return Math.floor(x); }
-  var m = Math.pow(10, precision);
-  return Math.floor(x * m) / m;
-};
-
-/**
- * Lightweight linear scale function for use outside the DOM (as opposed to d3.scale.linear
- * @param {Array.<number>} domain An array with exactly two arguments: lower and upper bound of the range
- * @param {Array.<number>} range An array with exactly two arguments: lower and upper bound of the range
- * @returns {function(number): number}
- */
-u.math.scaleLinear = function(domain, range) {
-  var domainSize = domain[1] - domain[0];
-  var rangeSize = range[1] - range[0];
-  var r = rangeSize / domainSize;
-  return function(x) { return range[0] + (x - domain[0]) * r; };
-};
 
 
 goog.provide('u.EventListener');
@@ -858,6 +958,42 @@ u.Event.prototype.fire = function(args) {
 };
 
 
+goog.provide('u.log');
+
+/**
+ * @param {...} args
+ */
+u.log.info = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (verbose != 'info') { return; }
+
+  var logger = u.log['LOGGER'] || console;
+  logger.info.apply(logger, arguments);
+};
+
+/**
+ * @param {...} args
+ */
+u.log.warn = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (['warn', 'info'].indexOf(verbose) < 0) { return; }
+
+  var logger = u.log['LOGGER'] || console;
+  logger.warn.apply(logger, arguments);
+};
+
+/**
+ * @param {...} args
+ */
+u.log.error = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (['error', 'warn', 'info'].indexOf(verbose) < 0) { return; }
+
+  var logger = u.log['LOGGER'] || console;
+  logger.error.apply(logger, arguments);
+};
+
+
 goog.provide('u.Promise');
 
 (function(window) {
@@ -990,7 +1126,7 @@ goog.provide('u.Promise');
    */
   PromisePolyfill.prototype._callAllFulfilled = function(value) {
     this._fulfilledCallbacks.forEach(function(callback) {
-      setTimeout(function() {  console.log('calling resolve callback with value ' + value); callback.call(null, value); }, 0);
+      setTimeout(function() {  callback.call(null, value); }, 0);
     });
     this._fulfilledCallbacks = [];
   };
@@ -1067,133 +1203,6 @@ u.AbstractMethodException = function(message, innerException) {
 goog.inherits(u.AbstractMethodException, u.Exception);
 
 
-goog.provide('u.async');
-goog.require('u.array');
-goog.require('u.reflection');
-
-/**
- * @param {Array.<function(): Promise>} jobs
- * @param {boolean} [inOrder] If true, the jobs are executed in order, otherwise, in parallel
- * @returns {Promise}
- */
-u.async.all = function(jobs, inOrder) {
-  if (inOrder) {  return u.async.each(jobs, function(job) { return job(); }, inOrder); }
-  return Promise.all(jobs.map(function(job) { return job(); }));
-};
-
-/**
- * @param {number} n
- * @param {function(number, (number|undefined)): Promise} iteration
- * @param {boolean} [inOrder]
- * @returns {Promise}
- */
-u.async.for = function(n, iteration, inOrder) {
-  return u.async.each(u.array.range(n), iteration, inOrder);
-};
-
-/**
- * @param {function(number): Promise} iteration
- * @returns {Promise}
- */
-u.async.do = function(iteration) {
-  return new Promise(function(resolve, reject) {
-    var i = 0;
-    var it = function() {
-      return iteration(i++).then(function(condition) {
-        return !condition || it();
-      });
-    };
-    it().then(resolve);
-  });
-};
-
-/**
- * @param {Array.<T>} items
- * @param {function(T, number): Promise} iteration
- * @param {boolean} [inOrder]
- * @returns {Promise}
- * @template T
- */
-u.async.each = function(items, iteration, inOrder) {
-  if (inOrder) {
-    return new Promise(function(resolve, reject) {
-      if (!items || !items.length) {
-        resolve();
-      }
-
-      var d, remaining;
-      d = new Array(items.length+1);
-      d[0] = new Promise(function(resolve) { resolve(); });
-
-      items.forEach(function(item, i) {
-        d[i + 1] = d[i].then(function() { return iteration.call(null, item, i); });
-      });
-
-      d[items.length].then(resolve);
-    });
-  } else {
-    return Promise.all(items.map(function(item, i) { return iteration(item, i); }));
-  }
-};
-
-/**
- * @constructor
- * @template T
- */
-u.async.Deferred = function() {
-  /**
-   * @type {Function}
-   * @private
-   */
-  this._resolve = null;
-
-  /**
-   * @type {Function}
-   * @private
-   */
-  this._reject = null;
-
-  var self = this;
-
-  /**
-   * @type {Promise}
-   * @private
-   */
-  this._promise = new Promise(function() { self._resolve = arguments[0]; self._reject = arguments[1]; });
-};
-
-/**
- * @param {T} [value]
- */
-u.async.Deferred.prototype.resolve = function(value) {
-  this._resolve.call(this._promise, value);
-};
-
-/**
- * @param {*} [reason]
- */
-u.async.Deferred.prototype.reject = function(reason) {
-  this._reject.call(this._promise, reason);
-};
-
-/**
- * @param {function((T|undefined))} [onFulfilled]
- * @param {function(*)} [onRejected]
- * @returns {Promise}
- */
-u.async.Deferred.prototype.then = function(onFulfilled, onRejected) {
-  return this._promise.then(onFulfilled, onRejected);
-};
-
-/**
- * @param {function(*)} onRejected
- * @returns {Promise}
- */
-u.async.Deferred.prototype.catch = function(onRejected) {
-  return this._promise.catch(onRejected);
-};
-
-
 goog.provide('u.string');
 
 /**
@@ -1206,37 +1215,28 @@ u.string.capitalizeFirstLetter = function (text) {
 };
 
 
-goog.provide('u.log');
+goog.provide('u.math');
 
 /**
- * @param {...} args
+ * @param {number} x
+ * @param {number} precision
+ * @returns {number}
  */
-u.log.info = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (verbose != 'info') { return; }
-
-  var logger = u.log['LOGGER'] || console;
-  logger.info.apply(logger, arguments);
+u.math.floorPrecision = function(x, precision) {
+  if (precision == 0) { return Math.floor(x); }
+  var m = Math.pow(10, precision);
+  return Math.floor(x * m) / m;
 };
 
 /**
- * @param {...} args
+ * Lightweight linear scale function for use outside the DOM (as opposed to d3.scale.linear
+ * @param {Array.<number>} domain An array with exactly two arguments: lower and upper bound of the range
+ * @param {Array.<number>} range An array with exactly two arguments: lower and upper bound of the range
+ * @returns {function(number): number}
  */
-u.log.warn = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (['warn', 'info'].indexOf(verbose) < 0) { return; }
-
-  var logger = u.log['LOGGER'] || console;
-  logger.warn.apply(logger, arguments);
-};
-
-/**
- * @param {...} args
- */
-u.log.error = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (['error', 'warn', 'info'].indexOf(verbose) < 0) { return; }
-
-  var logger = u.log['LOGGER'] || console;
-  logger.error.apply(logger, arguments);
+u.math.scaleLinear = function(domain, range) {
+  var domainSize = domain[1] - domain[0];
+  var rangeSize = range[1] - range[0];
+  var r = rangeSize / domainSize;
+  return function(x) { return range[0] + (x - domain[0]) * r; };
 };
