@@ -79,6 +79,8 @@ u.reflection.wrap = function(o, type) {
   //o.__proto__ = type.prototype;
   //return o;
 
+  if (o instanceof type) { return o; }
+
   var props = {};
   for (var p in o) {
     if (!o.hasOwnProperty(p)) { continue; }
