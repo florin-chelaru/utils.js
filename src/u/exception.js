@@ -38,6 +38,12 @@ u.Exception = function(message, innerException) {
 
 goog.inherits(u.Exception, Error);
 
+/**
+ * @type {string}
+ * @name u.Exception#myprop
+ */
+u.Exception.prototype.myprop;
+
 Object.defineProperties(u.Exception.prototype, {
   /**
    * @property
@@ -55,5 +61,9 @@ Object.defineProperties(u.Exception.prototype, {
    */
   'innerException': /** @type {Error} */ ({
     get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
-  })
+  }),
+
+  myprop: {
+    get: /** @type {function (this:u.Exception)} */ (function() { return this.stack; })
+  }
 });
