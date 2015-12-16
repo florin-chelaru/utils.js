@@ -58,3 +58,18 @@ u.array.unique = function(arr) {
     return result;
   }, []);
 };
+
+/**
+ * @param {Array} arr
+ * @param {function(*, number):boolean} predicate
+ * @param {*} [thisArg]
+ * @returns {number}
+ */
+u.array.indexOf = function(arr, predicate, thisArg) {
+  for (var i = 0; i < arr.length; ++i) {
+    if (predicate.call(thisArg, arr[i], i)) {
+      return i;
+    }
+  }
+  return -1;
+};

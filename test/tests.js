@@ -301,6 +301,18 @@ QUnit.test('u.array.unique', function(assert) {
   assert.deepEqual(u.array.unique(arr), exp);
 });
 
+
+QUnit.test('u.array.indexOf', function(assert) {
+  ok(u.array.indexOf);
+
+  var e = new u.Exception('my message');
+  var arr = [1, 'a', e, e, e, 'a', 7, 'a', 'b', 1, 12];
+
+  assert.equal(u.array.indexOf(arr, function(el, i) {
+    return el instanceof u.Exception;
+  }), 2);
+});
+
 QUnit.test('u.reflection.evaluateFullyQualifiedTypeName', function(assert) {
   assert.ok(u.reflection.evaluateFullyQualifiedTypeName);
 

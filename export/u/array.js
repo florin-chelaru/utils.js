@@ -10,3 +10,4 @@ goog.exportSymbol('u.array.fromArguments', u.array.fromArguments);
 goog.exportSymbol('u.array.fill', u.array.fill);
 goog.exportSymbol('u.array.range', u.array.range);
 goog.exportSymbol('u.array.unique', u.array.unique);
+goog.exportSymbol('u.array.indexOf', u.array.indexOf);
