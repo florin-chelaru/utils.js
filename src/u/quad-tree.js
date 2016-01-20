@@ -7,10 +7,10 @@
 goog.provide('u.QuadTree');
 
 /**
- * @param {number} x
- * @param {number} y
- * @param {number} w
- * @param {number} h
+ * @param {number} x Offset
+ * @param {number} y Offset
+ * @param {number} w Width
+ * @param {number} h Height
  * @param {number} minQuadrantRatio
  * @param {number} maxQuadrantCapacity
  * @constructor
@@ -41,24 +41,28 @@ u.QuadTree = function(x, y, w, h, minQuadrantRatio, maxQuadrantCapacity) {
   this._h = h;
 
   /**
+   * Convert v between x and x+w to v' between 0 and 1
    * @type {function(number):number}
    * @private
    */
   this._normX = function(v) { return (v - x) / w; };
 
   /**
+   * Convert v between 0 and 1 to v' between x and x+w
    * @type {function(number):number}
    * @private
    */
   this._scaleX = function(v) { return v * w + x; };
 
   /**
+   * Convert v between y and y+h to v' between 0 and 1
    * @type {function(number):number}
    * @private
    */
   this._normY = function(v) { return (v - y) / h; };
 
   /**
+   * Convert v between 0 and 1 to v' between x and y+h
    * @type {function(number):number}
    * @private
    */
@@ -71,10 +75,24 @@ u.QuadTree = function(x, y, w, h, minQuadrantRatio, maxQuadrantCapacity) {
   this._normW = function(v) { return v / w; };
 
   /**
+   * Convert v between 0 and 1 to v' between 0 and w
+   * @type {function(number):number}
+   * @private
+   */
+  this._scaleW = function(v) { return v * w; };
+
+  /**
    * @type {function(number):number}
    * @private
    */
   this._normH = function(v) { return v / h; };
+
+  /**
+   * Convert v between 0 and 1 to v' between 0 and h
+   * @type {function(number):number}
+   * @private
+   */
+  this._scaleH = function(v) { return v * h; };
 
   /**
    * @type {number}
@@ -114,6 +132,8 @@ u.QuadTree.prototype.insert = function(x, y, w, h, value) {
     this._normW(w),
     this._normH(h),
     value));
+
+  ++this._count;
 };
 
 /**
@@ -212,8 +232,8 @@ u.QuadTree.prototype._getQuadrant = function(node, item) {
  */
 u.QuadTree.prototype.collisions = function(x, y) {
   var point = {
-    x: this._normX(x),
-    y: this._normY(y)
+    'x': this._normX(x),
+    'y': this._normY(y)
   };
 
   return this._computeCollisions(this._root, point, []);
@@ -228,23 +248,29 @@ u.QuadTree.prototype.collisions = function(x, y) {
  * @private
  */
 u.QuadTree.prototype._computeCollisions = function(node, p, ret) {
-  Array.prototype.push.apply(ret, node.items.filter(function(item) {
-    return item.x <= p.x &&
-        item.x + item.w > p.x &&
-        item.y <= p.y &&
-        item.y + item.h > p.y;
-  }));
+  var self = this;
+  Array.prototype.push.apply(ret, node.items
+    .filter(function(item) {
+      return item.x <= p['x'] &&
+          item.x + item.w > p['x'] &&
+          item.y <= p['y'] &&
+          item.y + item.h > p['y'];
+    })
+    .map(function(item) {
+      return {'x': self._scaleX(item.x), 'y': self._scaleY(item.y), 'w': self._scaleW(item.w), 'h': self._scaleH(item.h), 'value': item.value};
+    })
+  );
 
   if (node.ne == null) { return ret; }
 
-  if (node.nw.x + node.nw.size > p.x) {
-    if (node.nw.y + node.nw.size > p.y) {
+  if (node.nw.x + node.nw.size > p['x']) {
+    if (node.nw.y + node.nw.size > p['y']) {
       return this._computeCollisions(node.nw, p, ret);
     } else {
       return this._computeCollisions(node.sw, p, ret);
     }
   } else {
-    if (node.ne.y + node.ne.size > p.y) {
+    if (node.ne.y + node.ne.size > p['y']) {
       return this._computeCollisions(node.ne, p, ret);
     } else {
       return this._computeCollisions(node.se, p, ret);
@@ -253,11 +279,11 @@ u.QuadTree.prototype._computeCollisions = function(node, p, ret) {
 };
 
 /**
- * @param x
- * @param y
- * @param w
- * @param h
- * @returns {Array.<u.QuadTree.Item>}
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ * @param {number} h
+ * @returns {Array.<{x: number, y: number, w: number, h: number, value: *}>}
  */
 u.QuadTree.prototype.overlaps = function(x, y, w, h) {
   var item = new u.QuadTree.Item(
@@ -272,17 +298,23 @@ u.QuadTree.prototype.overlaps = function(x, y, w, h) {
 /**
  * @param {u.QuadTree.Node} node
  * @param {u.QuadTree.Item} item
- * @param {Array.<u.QuadTree.Item>} ret
- * @returns {Array.<u.QuadTree.Item>}
+ * @param {Array.<{x: number, y: number, w: number, h: number, value: *}>} ret
+ * @returns {Array.<{x: number, y: number, w: number, h: number, value: *}>}
  * @private
  */
 u.QuadTree.prototype._computeOverlaps = function(node, item, ret) {
-  Array.prototype.push.apply(ret, node.items.filter(function(it) {
-    return it.x < item.x + item.w &&
-      it.x + it.w > item.x &&
-      it.y < item.y + item.h &&
-      it.y + it.h > item.y;
-  }));
+  var self = this;
+  Array.prototype.push.apply(ret, node.items
+    .filter(function(it) {
+      return it.x < item.x + item.w &&
+        it.x + it.w > item.x &&
+        it.y < item.y + item.h &&
+        it.y + it.h > item.y;
+    })
+    .map(function(it) {
+      return {'x': self._scaleX(it.x), 'y': self._scaleY(it.y), 'w': self._scaleW(it.w), 'h': self._scaleH(it.h), 'value': it.value};
+    })
+  );
 
   if (node.ne == null) { return ret; }
 
@@ -320,6 +352,39 @@ u.QuadTree.prototype._computeOverlaps = function(node, item, ret) {
   this._computeOverlaps(node.se, item, ret);
   this._computeOverlaps(node.sw, item, ret);
   return this._computeOverlaps(node.nw, item, ret);
+};
+
+/**
+ * @returns {Array.<{x: number, y: number, w: number, h: number, items: Array}>}
+ */
+u.QuadTree.prototype.leaves = function() {
+  return this._computeLeaves(this._root, []);
+};
+
+/**
+ * @param {u.QuadTree.Node} node
+ * @param {Array.<{x: number, y: number, w: number, h: number, items: Array}>} ret
+ * @returns {Array.<{x: number, y: number, w: number, h: number, items: Array}>}
+ * @private
+ */
+u.QuadTree.prototype._computeLeaves = function(node, ret) {
+  if (node.ne == null) {
+    ret.push({
+      'x': this._scaleX(node.x),
+      'y': this._scaleY(node.y),
+      'w': this._scaleW(node.size),
+      'h': this._scaleH(node.size),
+      'items': node.items
+    });
+    return ret;
+  }
+
+  this._computeLeaves(node.ne, ret);
+  this._computeLeaves(node.se, ret);
+  this._computeLeaves(node.sw, ret);
+  this._computeLeaves(node.nw, ret);
+
+  return ret;
 };
 
 /**

@@ -20,3 +20,4 @@ goog.require('u.log');
 goog.require('u.Promise');
 goog.require('u.TimeSpan');
 goog.require('u.UnimplementedException');
+goog.require('u.QuadTree');
