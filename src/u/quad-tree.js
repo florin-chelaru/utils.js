@@ -228,7 +228,7 @@ u.QuadTree.prototype._getQuadrant = function(node, item) {
 /**
  * @param {number} x
  * @param {number} y
- * @returns {Array.<u.QuadTree.Item>}
+ * @returns {Array.<{x: number, y: number, w: number, h: number, value: *}>}
  */
 u.QuadTree.prototype.collisions = function(x, y) {
   var point = {
@@ -243,8 +243,8 @@ u.QuadTree.prototype.collisions = function(x, y) {
  *
  * @param {u.QuadTree.Node} node
  * @param {{x: number, y: number}} p
- * @param {Array.<u.QuadTree.Item>} ret
- * @returns {Array.<u.QuadTree.Item>}
+ * @param {Array.<{x: number, y: number, w: number, h: number, value: *}>} ret
+ * @returns {Array.<{x: number, y: number, w: number, h: number, value: *}>}
  * @private
  */
 u.QuadTree.prototype._computeCollisions = function(node, p, ret) {
