@@ -48,8 +48,6 @@ QUnit.test('u.Exception', function(assert) {
   var inner = Error('another message');
   var e = new u.Exception('my message', inner);
 
-  assert.equal(e.myprop, e.stack);
-
   assert.equal(e.message, 'my message');
   assert.equal(e.name, 'Exception');
   assert.deepEqual(e.innerException, inner);
