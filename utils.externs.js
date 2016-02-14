@@ -339,6 +339,14 @@ u.httpGet = function(uri) {};
 u.parseLessConsts = function(opts) {};
 
 /**
+ * Forces browser to reflow element that was previously hidden (display: none), so that transitions like
+ * fade or transform can be applied to it
+ * @param {HTMLElement} element
+ * @returns {number}
+ */
+u.reflowForTransition = function(element) {};
+
+/**
  * @param {number} milliseconds Must be positive
  * @constructor
  */

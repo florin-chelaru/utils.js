@@ -346,6 +346,10 @@ QUnit.test('u.parseLessConsts', function(assert) {
     });
 });
 
+QUnit.test('u.reflowForTransition', function(assert) {
+  assert.ok(u.reflowForTransition);
+});
+
 
 QUnit.test('u.array.range', function(assert) {
   assert.ok(u.array.range);
