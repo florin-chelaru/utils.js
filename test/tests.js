@@ -350,6 +350,11 @@ QUnit.test('u.reflowForTransition', function(assert) {
   assert.ok(u.reflowForTransition);
 });
 
+QUnit.test('u.gravatar', function(assert) {
+  assert.ok(u.gravatar);
+  assert.equal(u.gravatar('florin.chelaru@gmail.com', {size: 150}), 'http://www.gravatar.com/avatar/bc33879346ddc86d6d0f855a5fb85c69?r=g&s=150');
+});
+
 
 QUnit.test('u.array.range', function(assert) {
   assert.ok(u.array.range);

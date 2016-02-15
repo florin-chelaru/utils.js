@@ -14,3 +14,4 @@ goog.exportSymbol('u.generatePseudoGUID', u.generatePseudoGUID);
 goog.exportSymbol('u.httpGet', u.httpGet);
 goog.exportSymbol('u.parseLessConsts', u.parseLessConsts);
 goog.exportSymbol('u.reflowForTransition', u.reflowForTransition);
+goog.exportSymbol('u.gravatar', u.gravatar);

@@ -11,269 +11,8 @@
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
 * Software.
 *
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-* WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-* COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-* OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+* gravatarjs:  Ryan ryan@mazondo.com (MIT License)
 */
-
-
-goog.provide('u.Promise');
-
-(function(window) {
-  if ('Promise' in window) { return; }
-
-  /**
-   * @param {function(function(*), function(*))} resolver
-   * @constructor
-   */
-  var PromisePolyfill = function(resolver) {
-    if (typeof resolver != 'function') {
-      throw new TypeError('Promise resolver ' + resolver + ' is not a function');
-    }
-
-    /**
-     * @type {Array.<Function>}
-     * @private
-     */
-    this._fulfilledCallbacks = [];
-
-    /**
-     * @type {Array.<Function>}
-     * @private
-     */
-    this._rejectedCallbacks = [];
-
-    /**
-     * @type {boolean}
-     * @private
-     */
-    this._resolved = false;
-
-    /**
-     * @type {boolean}
-     * @private
-     */
-    this._rejected = false;
-
-    /**
-     * @type {*}
-     * @private
-     */
-    this._resolvedVal = undefined;
-
-    /**
-     * @type {*}
-     * @private
-     */
-    this._rejectedReason = undefined;
-
-    var self = this;
-    try {
-      resolver(
-        // Resolve
-        function (value) {
-          self._resolved = true;
-          self._resolvedVal = value;
-          self._callAllFulfilled(value);
-        },
-        // Reject
-        function (reason) {
-          self._rejected = true;
-          self._rejectedReason = reason;
-          self._callAllRejected(reason);
-        });
-    } catch (err) {
-      self._callAllRejected(err);
-    }
-  };
-
-  /**
-   * @param {function(*)} [onFulfilled]
-   * @param {function(*)} [onRejected]
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill.prototype['then'] = function (onFulfilled, onRejected) {
-    var resolve, reject;
-    var ret = new PromisePolyfill(function() { resolve = arguments[0]; reject = arguments[1]; });
-    var fulfilledWrapper, rejectedWrapper;
-    if (typeof onFulfilled == 'function') {
-      fulfilledWrapper = function(value) {
-        try {
-          var next = onFulfilled.call(null, value);
-          if (next instanceof PromisePolyfill) {
-            next['then'](resolve, reject);
-          } else {
-            resolve(next);
-          }
-        } catch (err) {
-          reject(err);
-        }
-      };
-      this._fulfilledCallbacks.push(fulfilledWrapper);
-    }
-    if (typeof onRejected == 'function') {
-      rejectedWrapper = function(reason) {
-        try {
-          var next = onRejected.call(null, reason);
-          if (next instanceof PromisePolyfill) {
-            next['then'](resolve, reject);
-          } else {
-            resolve(next);
-          }
-        } catch (err) {
-          reject(err);
-        }
-      };
-      this._rejectedCallbacks.push(rejectedWrapper);
-    }
-
-    var self = this;
-    if (this._resolved) {
-      setTimeout(function() { fulfilledWrapper.call(null, self._resolvedVal); }, 0);
-    } else if (this._rejected) {
-      setTimeout(function() { rejectedWrapper.call(null, self._rejectedReason); }, 0);
-    }
-
-    return ret;
-  };
-
-  /**
-   * @param {function(*)} [onRejected]
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill.prototype['catch'] = function(onRejected) { return this['then'](undefined, onRejected); };
-
-  /**
-   * @param {T} value
-   * @template T
-   */
-  PromisePolyfill.prototype._callAllFulfilled = function(value) {
-    this._fulfilledCallbacks.forEach(function(callback) {
-      setTimeout(function() {  callback.call(null, value); }, 0);
-    });
-    this._fulfilledCallbacks = [];
-  };
-
-  /**
-   * @param {*} reason
-   */
-  PromisePolyfill.prototype._callAllRejected = function(reason) {
-    this._rejectedCallbacks.forEach(function(callback) {
-      setTimeout(function() {  callback.call(null, reason); }, 0);
-    });
-    this._rejectedCallbacks = [];
-  };
-
-  /**
-   * @param {*} [value]
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill['resolve'] = function(value) { return new PromisePolyfill(function(resolve) { resolve(value); }); };
-
-  /**
-   * @param {*} [reason]
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill['reject'] = function(reason) { return new PromisePolyfill(function(resolve, reject) { reject(reason); }); };
-
-  /**
-   * @param {Array} promises
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill['all'] = function(promises) {
-    if (!promises || !promises.length) { return PromisePolyfill['resolve'](); }
-    return new PromisePolyfill(function(resolve, reject) {
-      var ret = new Array(promises.length);
-      var remaining = promises.length;
-      promises.forEach(function(promise, i) {
-        var p = (promise instanceof PromisePolyfill) ? promise : PromisePolyfill['resolve'](promise);
-        p['then'](
-          function(value) {
-            ret[i] = value;
-            --remaining;
-            if (!remaining) { resolve(ret); }
-          },
-          function(reason) {
-            reject(reason);
-          });
-      });
-    });
-  };
-
-  window['Promise'] = PromisePolyfill;
-})(this);
-
-
-goog.provide('u.array');
-
-/**
- * @param {Arguments|Array} args
- * @returns {Array}
- */
-u.array.fromArguments = function(args) {
-  return /** @type {Array} */ (Array.isArray(args) ? args : [].slice.apply(args));
-};
-
-/**
- * Creates an array of length n filled with value
- * @param {number} n
- * @param {*} value
- * @returns {Array}
- */
-u.array.fill = function(n, value) {
-  n = n || 0;
-  var ret = new Array(n);
-  for (var i = 0; i < n; ++i) { ret[i] = value; }
-  return ret;
-};
-
-/**
- * Generates an array of consecutive numbers starting from start, or 0 if it's not defined
- * @param {number} n
- * @param {number} [start]
- * @returns {Array.<number>}
- */
-u.array.range = function(n, start) {
-  start = start || 0;
-  n = n || 0;
-
-  var result = new Array(n);
-  for (var i = 0; i < n; ++i) {
-    result[i] = i + start;
-  }
-
-  return result;
-};
-
-/**
- * Returns a new array where all elements are unique
- * Complexity is suboptimal: O(n^2); for strings and numbers,
- * it can be done faster, using a map
- * @param {Array} arr
- * @returns {Array}
- */
-u.array.unique = function(arr) {
-  return arr.reduce(function(result, item) {
-    if (result.indexOf(item) < 0) { result.push(item); }
-    return result;
-  }, []);
-};
-
-/**
- * @param {Array} arr
- * @param {function(*, number):boolean} predicate
- * @param {*} [thisArg]
- * @returns {number}
- */
-u.array.indexOf = function(arr, predicate, thisArg) {
-  for (var i = 0; i < arr.length; ++i) {
-    if (predicate.call(thisArg, arr[i], i)) {
-      return i;
-    }
-  }
-  return -1;
-};
 
 
 goog.provide('u.Exception');
@@ -331,122 +70,6 @@ Object.defineProperties(u.Exception.prototype, {
 });
 
 
-goog.provide('u.UnimplementedException');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.UnimplementedException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'UnimplementedException';
-};
-
-goog.inherits(u.UnimplementedException, u.Exception);
-
-
-goog.provide('u.reflection');
-goog.require('u.array');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.reflection.ReflectionException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'ReflectionException';
-};
-
-goog.inherits(u.reflection.ReflectionException, u.Exception);
-
-
-/**
- * Evaluates the given string into a constructor for a type
- * @param {string} typeName
- * @param {Object} [context]
- * @returns {function(new: T)}
- * @template T
- */
-u.reflection.evaluateFullyQualifiedTypeName = function(typeName, context) {
-  var result;
-
-  try {
-    var namespaces = typeName.split('.');
-    var func = namespaces.pop();
-    var ctx = context || window;
-    for (var i = 0; i < namespaces.length; ++i) {
-      ctx = ctx[namespaces[i]];
-    }
-    result = ctx[func];
-  } catch (error) {
-    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName, error);
-  }
-
-  if (typeof(result) !== 'function') {
-    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName);
-  }
-
-  return result;
-};
-
-/**
- * Applies the given constructor to the given parameters and creates
- * a new instance of the class it defines
- * @param {function(new: T)} ctor
- * @param {Array|Arguments} params
- * @returns {T}
- * @template T
- */
-u.reflection.applyConstructor = function(ctor, params) {
-  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params || []))));
-};
-
-/**
- * Wraps given type around the given object, so the object's prototype matches the one of the type
- * @param {Object} o
- * @param {function(new: T)} type
- * @returns {T}
- * @template T
- */
-u.reflection.wrap = function(o, type) {
-  //o.__proto__ = type.prototype;
-  //return o;
-
-  if (o instanceof type) { return o; }
-
-  var props = {};
-  for (var p in o) {
-    if (!o.hasOwnProperty(p)) { continue; }
-    (function(p) {
-      props[p] = {
-        get: function() { return o[p]; },
-        set: function(value) { o[p] = value; },
-        configurable: true,
-        enumerable: true
-      };
-    })(p);
-  }
-
-  return Object.create(type.prototype, props);
-};
-
-
 goog.provide('u.AbstractMethodException');
 
 goog.require('u.Exception');
@@ -467,169 +90,6 @@ u.AbstractMethodException = function(message, innerException) {
 };
 
 goog.inherits(u.AbstractMethodException, u.Exception);
-
-
-goog.provide('u.log');
-
-/**
- * @param {...} args
- */
-u.log.info = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (verbose != 'info') { return; }
-
-  var logger = u.log['LOGGER'] || console;
-  logger.info.apply(logger, arguments);
-};
-
-/**
- * @param {...} args
- */
-u.log.warn = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (['warn', 'info'].indexOf(verbose) < 0) { return; }
-
-  var logger = u.log['LOGGER'] || console;
-  logger.warn.apply(logger, arguments);
-};
-
-/**
- * @param {...} args
- */
-u.log.error = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (['error', 'warn', 'info'].indexOf(verbose) < 0) { return; }
-
-  var logger = u.log['LOGGER'] || console;
-  logger.error.apply(logger, arguments);
-};
-
-
-goog.provide('u.async');
-goog.require('u.array');
-goog.require('u.reflection');
-
-/**
- * @param {Array.<function(): Promise>} jobs
- * @param {boolean} [inOrder] If true, the jobs are executed in order, otherwise, in parallel
- * @returns {Promise}
- */
-u.async.all = function(jobs, inOrder) {
-  if (inOrder) {  return u.async.each(jobs, function(job) { return job(); }, inOrder); }
-  return Promise.all(jobs.map(function(job) { return job(); }));
-};
-
-/**
- * @param {number} n
- * @param {function(number, (number|undefined)): Promise} iteration
- * @param {boolean} [inOrder]
- * @returns {Promise}
- */
-u.async.for = function(n, iteration, inOrder) {
-  return u.async.each(u.array.range(n), iteration, inOrder);
-};
-
-/**
- * @param {function(number): Promise} iteration
- * @returns {Promise}
- */
-u.async.do = function(iteration) {
-  return new Promise(function(resolve, reject) {
-    var i = 0;
-    var it = function() {
-      return iteration(i++).then(function(condition) {
-        return !condition || it();
-      });
-    };
-    it().then(resolve);
-  });
-};
-
-/**
- * @param {Array.<T>} items
- * @param {function(T, number): Promise} iteration
- * @param {boolean} [inOrder]
- * @returns {Promise}
- * @template T
- */
-u.async.each = function(items, iteration, inOrder) {
-  if (inOrder) {
-    return new Promise(function(resolve, reject) {
-      if (!items || !items.length) {
-        resolve();
-      }
-
-      var d, remaining;
-      d = new Array(items.length+1);
-      d[0] = new Promise(function(resolve) { resolve(); });
-
-      items.forEach(function(item, i) {
-        d[i + 1] = d[i].then(function() { return iteration.call(null, item, i); });
-      });
-
-      d[items.length].then(resolve);
-    });
-  } else {
-    return Promise.all(items.map(function(item, i) { return iteration(item, i); }));
-  }
-};
-
-/**
- * @constructor
- * @template T
- */
-u.async.Deferred = function() {
-  /**
-   * @type {Function}
-   * @private
-   */
-  this._resolve = null;
-
-  /**
-   * @type {Function}
-   * @private
-   */
-  this._reject = null;
-
-  var self = this;
-
-  /**
-   * @type {Promise}
-   * @private
-   */
-  this._promise = new Promise(function() { self._resolve = arguments[0]; self._reject = arguments[1]; });
-};
-
-/**
- * @param {T} [value]
- */
-u.async.Deferred.prototype.resolve = function(value) {
-  this._resolve.call(this._promise, value);
-};
-
-/**
- * @param {*} [reason]
- */
-u.async.Deferred.prototype.reject = function(reason) {
-  this._reject.call(this._promise, reason);
-};
-
-/**
- * @param {function((T|undefined))} [onFulfilled]
- * @param {function(*)} [onRejected]
- * @returns {Promise}
- */
-u.async.Deferred.prototype.then = function(onFulfilled, onRejected) {
-  return this._promise.then(onFulfilled, onRejected);
-};
-
-/**
- * @param {function(*)} onRejected
- * @returns {Promise}
- */
-u.async.Deferred.prototype.catch = function(onRejected) {
-  return this._promise.catch(onRejected);
-};
 
 
 goog.provide('u');
@@ -789,222 +249,186 @@ u.reflowForTransition = function(element) {
   return element.offsetWidth;
 };
 
-
-goog.provide('u.TimeSpan');
-
-goog.require('u');
-
 /**
- * @param {number} milliseconds Must be positive
- * @constructor
- */
-u.TimeSpan = function(milliseconds) {
-  if (milliseconds < 0) { milliseconds = 0; }
-
-  /**
-   * @type {number}
-   * @private
-   */
-  this._totalMilliseconds = milliseconds;
-
-  /**
-   * @type {?number}
-   * @private
-   */
-  this._totalDays = null;
-
-  /**
-   * @type {?number}
-   * @private
-   */
-  this._totalHours = null;
-
-  /**
-   * @type {?number}
-   * @private
-   */
-  this._totalMinutes = null;
-
-  /**
-   * @type {?number}
-   * @private
-   */
-  this._totalSeconds = null;
-
-
-  /**
-   * @type {?number}
-   * @private
-   */
-  this._days = null;
-
-  /**
-   * @type {?number}
-   * @private
-   */
-  this._hours = null;
-
-  /**
-   * @type {?number}
-   * @private
-   */
-  this._minutes = null;
-
-  /**
-   * @type {?number}
-   * @private
-   */
-  this._seconds = null;
-
-  /**
-   * @type {?number}
-   * @private
-   */
-  this._milliseconds = null;
-};
-
-/**
- * @constant {number}
- */
-u.TimeSpan.MS_IN_SECOND = 1000;
-
-/**
- * @constant {number}
- */
-u.TimeSpan.MS_IN_MINUTE = 60 * u.TimeSpan.MS_IN_SECOND;
-
-/**
- * @constant {number}
- */
-u.TimeSpan.MS_IN_HOUR = 60 * u.TimeSpan.MS_IN_MINUTE;
-
-/**
- * @constant {number}
- */
-u.TimeSpan.MS_IN_DAY = 24 * u.TimeSpan.MS_IN_HOUR;
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.days = function() {
-  if (this._days == null) { this._days = Math.floor(this.totalDays()); }
-  return this._days;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.hours = function() {
-  if (this._hours == null) {
-    this._hours = Math.floor((this.totalDays() - this.days()) * 24);
-  }
-  return this._hours;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.minutes = function() {
-  if (this._minutes == null) {
-    this._minutes = Math.floor((this.totalHours() - Math.floor(this.totalHours())) * 60);
-  }
-  return this._minutes;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.seconds = function() {
-  if (this._seconds == null) {
-    this._seconds = Math.floor((this.totalMinutes() - Math.floor(this.totalMinutes())) * 60);
-  }
-  return this._seconds;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.milliseconds = function() {
-  if (this._milliseconds == null) {
-    this._milliseconds = this._totalMilliseconds % 1000;
-  }
-  return this._milliseconds;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.totalDays = function() {
-  if (this._totalDays == null) {
-    this._totalDays = this._totalMilliseconds / u.TimeSpan.MS_IN_DAY;
-  }
-  return this._totalDays;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.totalHours = function() {
-  if (this._totalHours == null) {
-    this._totalHours = this._totalMilliseconds / u.TimeSpan.MS_IN_HOUR;
-  }
-  return this._totalHours;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.totalMinutes = function() {
-  if (this._totalMinutes == null) {
-    this._totalMinutes = this._totalMilliseconds / u.TimeSpan.MS_IN_MINUTE;
-  }
-  return this._totalMinutes;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.totalSeconds = function() {
-  if (this._totalSeconds == null) {
-    this._totalSeconds = this._totalMilliseconds / u.TimeSpan.MS_IN_SECOND;
-  }
-  return this._totalSeconds;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.totalMilliseconds = function() { return this._totalMilliseconds; };
-
-/**
- * TODO: Add a formatting parameter
- * @override
+ * @param {string} email
+ * @param {{size: (string|number|undefined), rating: (string|undefined), secure: (string|boolean|undefined), backup: (string|undefined)}} [options]
  * @returns {string}
  */
-u.TimeSpan.prototype.toString = function() {
-  var ret = '';
-  if (this.days() > 0) {
-    if (this.days() > 1) { ret += this.days() + ' days'; }
-    else { ret += 'one day'}
+u.gravatar = function(email, options) {
+  // using md5() from here: http://www.myersdaily.org/joseph/javascript/md5-text.html
+  function md5cycle(e, t) {
+    var n = e[0], r = e[1], i = e[2], s = e[3];
+    n = ff(n, r, i, s, t[0], 7, -680876936);
+    s = ff(s, n, r, i, t[1], 12, -389564586);
+    i = ff(i, s, n, r, t[2], 17, 606105819);
+    r = ff(r, i, s, n, t[3], 22, -1044525330);
+    n = ff(n, r, i, s, t[4], 7, -176418897);
+    s = ff(s, n, r, i, t[5], 12, 1200080426);
+    i = ff(i, s, n, r, t[6], 17, -1473231341);
+    r = ff(r, i, s, n, t[7], 22, -45705983);
+    n = ff(n, r, i, s, t[8], 7, 1770035416);
+    s = ff(s, n, r, i, t[9], 12, -1958414417);
+    i = ff(i, s, n, r, t[10], 17, -42063);
+    r = ff(r, i, s, n, t[11], 22, -1990404162);
+    n = ff(n, r, i, s, t[12], 7, 1804603682);
+    s = ff(s, n, r, i, t[13], 12, -40341101);
+    i = ff(i, s, n, r, t[14], 17, -1502002290);
+    r = ff(r, i, s, n, t[15], 22, 1236535329);
+    n = gg(n, r, i, s, t[1], 5, -165796510);
+    s = gg(s, n, r, i, t[6], 9, -1069501632);
+    i = gg(i, s, n, r, t[11], 14, 643717713);
+    r = gg(r, i, s, n, t[0], 20, -373897302);
+    n = gg(n, r, i, s, t[5], 5, -701558691);
+    s = gg(s, n, r, i, t[10], 9, 38016083);
+    i = gg(i, s, n, r, t[15], 14, -660478335);
+    r = gg(r, i, s, n, t[4], 20, -405537848);
+    n = gg(n, r, i, s, t[9], 5, 568446438);
+    s = gg(s, n, r, i, t[14], 9, -1019803690);
+    i = gg(i, s, n, r, t[3], 14, -187363961);
+    r = gg(r, i, s, n, t[8], 20, 1163531501);
+    n = gg(n, r, i, s, t[13], 5, -1444681467);
+    s = gg(s, n, r, i, t[2], 9, -51403784);
+    i = gg(i, s, n, r, t[7], 14, 1735328473);
+    r = gg(r, i, s, n, t[12], 20, -1926607734);
+    n = hh(n, r, i, s, t[5], 4, -378558);
+    s = hh(s, n, r, i, t[8], 11, -2022574463);
+    i = hh(i, s, n, r, t[11], 16, 1839030562);
+    r = hh(r, i, s, n, t[14], 23, -35309556);
+    n = hh(n, r, i, s, t[1], 4, -1530992060);
+    s = hh(s, n, r, i, t[4], 11, 1272893353);
+    i = hh(i, s, n, r, t[7], 16, -155497632);
+    r = hh(r, i, s, n, t[10], 23, -1094730640);
+    n = hh(n, r, i, s, t[13], 4, 681279174);
+    s = hh(s, n, r, i, t[0], 11, -358537222);
+    i = hh(i, s, n, r, t[3], 16, -722521979);
+    r = hh(r, i, s, n, t[6], 23, 76029189);
+    n = hh(n, r, i, s, t[9], 4, -640364487);
+    s = hh(s, n, r, i, t[12], 11, -421815835);
+    i = hh(i, s, n, r, t[15], 16, 530742520);
+    r = hh(r, i, s, n, t[2], 23, -995338651);
+    n = ii(n, r, i, s, t[0], 6, -198630844);
+    s = ii(s, n, r, i, t[7], 10, 1126891415);
+    i = ii(i, s, n, r, t[14], 15, -1416354905);
+    r = ii(r, i, s, n, t[5], 21, -57434055);
+    n = ii(n, r, i, s, t[12], 6, 1700485571);
+    s = ii(s, n, r, i, t[3], 10, -1894986606);
+    i = ii(i, s, n, r, t[10], 15, -1051523);
+    r = ii(r, i, s, n, t[1], 21, -2054922799);
+    n = ii(n, r, i, s, t[8], 6, 1873313359);
+    s = ii(s, n, r, i, t[15], 10, -30611744);
+    i = ii(i, s, n, r, t[6], 15, -1560198380);
+    r = ii(r, i, s, n, t[13], 21, 1309151649);
+    n = ii(n, r, i, s, t[4], 6, -145523070);
+    s = ii(s, n, r, i, t[11], 10, -1120210379);
+    i = ii(i, s, n, r, t[2], 15, 718787259);
+    r = ii(r, i, s, n, t[9], 21, -343485551);
+    e[0] = add32(n, e[0]);
+    e[1] = add32(r, e[1]);
+    e[2] = add32(i, e[2]);
+    e[3] = add32(s, e[3])
   }
 
-  if (this.hours() > 0) {
-    if (ret) { ret += ', '; }
-    if (this.hours() > 1) { ret += this.hours() + ' hours'; }
-    else { ret += 'one hour'; }
+  function cmn(e, t, n, r, i, s) {
+    t = add32(add32(t, e), add32(r, s));
+    return add32(t << i | t >>> 32 - i, n)
   }
 
-  if (this.minutes() > 0) {
-    if (ret) { ret += ' and '; }
-    if (this.minutes() > 1) { ret += this.minutes() + ' minutes'; }
-    else { ret += 'one minute'; }
-  } else if (!ret) {
-    ret += 'less than a minute';
+  function ff(e, t, n, r, i, s, o) {
+    return cmn(t & n | ~t & r, e, t, i, s, o)
   }
 
-  return u.string.capitalizeFirstLetter(ret);
+  function gg(e, t, n, r, i, s, o) {
+    return cmn(t & r | n & ~r, e, t, i, s, o)
+  }
+
+  function hh(e, t, n, r, i, s, o) {
+    return cmn(t ^ n ^ r, e, t, i, s, o)
+  }
+
+  function ii(e, t, n, r, i, s, o) {
+    return cmn(n ^ (t | ~r), e, t, i, s, o)
+  }
+
+  function md51(e) {
+    var t = e.length, n = [1732584193, -271733879, -1732584194, 271733878], r;
+    for (r = 64; r <= e.length; r += 64) {
+      md5cycle(n, md5blk(e.substring(r - 64, r)))
+    }
+    e = e.substring(r - 64);
+    var i = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    for (r = 0; r < e.length; r++)i[r >> 2] |= e.charCodeAt(r) << (r % 4 << 3);
+    i[r >> 2] |= 128 << (r % 4 << 3);
+    if (r > 55) {
+      md5cycle(n, i);
+      for (r = 0; r < 16; r++)i[r] = 0
+    }
+    i[14] = t * 8;
+    md5cycle(n, i);
+    return n
+  }
+
+  function md5blk(e) {
+    var t = [], n;
+    for (n = 0; n < 64; n += 4) {
+      t[n >> 2] = e.charCodeAt(n) + (e.charCodeAt(n + 1) << 8) + (e.charCodeAt(n + 2) << 16) + (e.charCodeAt(n + 3) << 24)
+    }
+    return t
+  }
+
+  function rhex(e) {
+    var t = "", n = 0;
+    for (; n < 4; n++)t += hex_chr[e >> n * 8 + 4 & 15] + hex_chr[e >> n * 8 & 15];
+    return t
+  }
+
+  function hex(e) {
+    for (var t = 0; t < e.length; t++)e[t] = rhex(e[t]);
+    return e.join("")
+  }
+
+  function md5(e) {
+    return hex(md51(e))
+  }
+
+  function add32(e, t) {
+    return e + t & 4294967295
+  }
+
+  var hex_chr = "0123456789abcdef".split("");
+  if (md5("hello") != "5d41402abc4b2a76b9719d911017c592") {
+    add32 = function(e, t) {
+      var n = (e & 65535) + (t & 65535), r = (e >> 16) + (t >> 16) + (n >> 16);
+      return r << 16 | n & 65535
+    }
+  }
+  //check to make sure you gave us something
+  var opt = options || {};
+  var
+    base,
+    params = [];
+
+  //set some defaults, just in case
+  opt = {
+    size: opt.size || "50",
+    rating: opt.rating || "g",
+    secure: opt.secure || (location.protocol === 'https:'),
+    backup: opt.backup || ""
+  };
+
+  //setup the email address
+  email = email.trim().toLowerCase();
+
+  //determine which base to use
+  base = opt.secure ? 'https://secure.gravatar.com/avatar/' : 'http://www.gravatar.com/avatar/';
+
+  //add the params
+  if (opt.rating) {params.push("r=" + opt.rating)}
+  if (opt.backup) {params.push("d=" + encodeURIComponent(opt.backup))}
+  if (opt.size) {params.push("s=" + opt.size)}
+
+  //now throw it all together
+  return base + md5(email) + "?" + params.join("&");
 };
-
 
 
 goog.provide('u.math');
@@ -1031,6 +455,171 @@ u.math.scaleLinear = function(domain, range) {
   var rangeSize = range[1] - range[0];
   var r = rangeSize / domainSize;
   return function(x) { return range[0] + (x - domain[0]) * r; };
+};
+
+
+goog.provide('u.array');
+
+/**
+ * @param {Arguments|Array} args
+ * @returns {Array}
+ */
+u.array.fromArguments = function(args) {
+  return /** @type {Array} */ (Array.isArray(args) ? args : [].slice.apply(args));
+};
+
+/**
+ * Creates an array of length n filled with value
+ * @param {number} n
+ * @param {*} value
+ * @returns {Array}
+ */
+u.array.fill = function(n, value) {
+  n = n || 0;
+  var ret = new Array(n);
+  for (var i = 0; i < n; ++i) { ret[i] = value; }
+  return ret;
+};
+
+/**
+ * Generates an array of consecutive numbers starting from start, or 0 if it's not defined
+ * @param {number} n
+ * @param {number} [start]
+ * @returns {Array.<number>}
+ */
+u.array.range = function(n, start) {
+  start = start || 0;
+  n = n || 0;
+
+  var result = new Array(n);
+  for (var i = 0; i < n; ++i) {
+    result[i] = i + start;
+  }
+
+  return result;
+};
+
+/**
+ * Returns a new array where all elements are unique
+ * Complexity is suboptimal: O(n^2); for strings and numbers,
+ * it can be done faster, using a map
+ * @param {Array} arr
+ * @returns {Array}
+ */
+u.array.unique = function(arr) {
+  return arr.reduce(function(result, item) {
+    if (result.indexOf(item) < 0) { result.push(item); }
+    return result;
+  }, []);
+};
+
+/**
+ * @param {Array} arr
+ * @param {function(*, number):boolean} predicate
+ * @param {*} [thisArg]
+ * @returns {number}
+ */
+u.array.indexOf = function(arr, predicate, thisArg) {
+  for (var i = 0; i < arr.length; ++i) {
+    if (predicate.call(thisArg, arr[i], i)) {
+      return i;
+    }
+  }
+  return -1;
+};
+
+
+goog.provide('u.reflection');
+goog.require('u.array');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.reflection.ReflectionException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'ReflectionException';
+};
+
+goog.inherits(u.reflection.ReflectionException, u.Exception);
+
+
+/**
+ * Evaluates the given string into a constructor for a type
+ * @param {string} typeName
+ * @param {Object} [context]
+ * @returns {function(new: T)}
+ * @template T
+ */
+u.reflection.evaluateFullyQualifiedTypeName = function(typeName, context) {
+  var result;
+
+  try {
+    var namespaces = typeName.split('.');
+    var func = namespaces.pop();
+    var ctx = context || window;
+    for (var i = 0; i < namespaces.length; ++i) {
+      ctx = ctx[namespaces[i]];
+    }
+    result = ctx[func];
+  } catch (error) {
+    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName, error);
+  }
+
+  if (typeof(result) !== 'function') {
+    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName);
+  }
+
+  return result;
+};
+
+/**
+ * Applies the given constructor to the given parameters and creates
+ * a new instance of the class it defines
+ * @param {function(new: T)} ctor
+ * @param {Array|Arguments} params
+ * @returns {T}
+ * @template T
+ */
+u.reflection.applyConstructor = function(ctor, params) {
+  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params || []))));
+};
+
+/**
+ * Wraps given type around the given object, so the object's prototype matches the one of the type
+ * @param {Object} o
+ * @param {function(new: T)} type
+ * @returns {T}
+ * @template T
+ */
+u.reflection.wrap = function(o, type) {
+  //o.__proto__ = type.prototype;
+  //return o;
+
+  if (o instanceof type) { return o; }
+
+  var props = {};
+  for (var p in o) {
+    if (!o.hasOwnProperty(p)) { continue; }
+    (function(p) {
+      props[p] = {
+        get: function() { return o[p]; },
+        set: function(value) { o[p] = value; },
+        configurable: true,
+        enumerable: true
+      };
+    })(p);
+  }
+
+  return Object.create(type.prototype, props);
 };
 
 
@@ -1255,6 +844,193 @@ u.Geolocation.prototype.equals = function(other) {
   if (other == undefined) { return false; }
   return this['lat'] == other['lat'] && this['lng'] == other['lng'] && this['zoom'] == other['zoom'] && this['range'] == other['range'];
 };
+
+
+goog.provide('u.Promise');
+
+(function(window) {
+  if ('Promise' in window) { return; }
+
+  /**
+   * @param {function(function(*), function(*))} resolver
+   * @constructor
+   */
+  var PromisePolyfill = function(resolver) {
+    if (typeof resolver != 'function') {
+      throw new TypeError('Promise resolver ' + resolver + ' is not a function');
+    }
+
+    /**
+     * @type {Array.<Function>}
+     * @private
+     */
+    this._fulfilledCallbacks = [];
+
+    /**
+     * @type {Array.<Function>}
+     * @private
+     */
+    this._rejectedCallbacks = [];
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this._resolved = false;
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this._rejected = false;
+
+    /**
+     * @type {*}
+     * @private
+     */
+    this._resolvedVal = undefined;
+
+    /**
+     * @type {*}
+     * @private
+     */
+    this._rejectedReason = undefined;
+
+    var self = this;
+    try {
+      resolver(
+        // Resolve
+        function (value) {
+          self._resolved = true;
+          self._resolvedVal = value;
+          self._callAllFulfilled(value);
+        },
+        // Reject
+        function (reason) {
+          self._rejected = true;
+          self._rejectedReason = reason;
+          self._callAllRejected(reason);
+        });
+    } catch (err) {
+      self._callAllRejected(err);
+    }
+  };
+
+  /**
+   * @param {function(*)} [onFulfilled]
+   * @param {function(*)} [onRejected]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill.prototype['then'] = function (onFulfilled, onRejected) {
+    var resolve, reject;
+    var ret = new PromisePolyfill(function() { resolve = arguments[0]; reject = arguments[1]; });
+    var fulfilledWrapper, rejectedWrapper;
+    if (typeof onFulfilled == 'function') {
+      fulfilledWrapper = function(value) {
+        try {
+          var next = onFulfilled.call(null, value);
+          if (next instanceof PromisePolyfill) {
+            next['then'](resolve, reject);
+          } else {
+            resolve(next);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+      this._fulfilledCallbacks.push(fulfilledWrapper);
+    }
+    if (typeof onRejected == 'function') {
+      rejectedWrapper = function(reason) {
+        try {
+          var next = onRejected.call(null, reason);
+          if (next instanceof PromisePolyfill) {
+            next['then'](resolve, reject);
+          } else {
+            resolve(next);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+      this._rejectedCallbacks.push(rejectedWrapper);
+    }
+
+    var self = this;
+    if (this._resolved) {
+      setTimeout(function() { fulfilledWrapper.call(null, self._resolvedVal); }, 0);
+    } else if (this._rejected) {
+      setTimeout(function() { rejectedWrapper.call(null, self._rejectedReason); }, 0);
+    }
+
+    return ret;
+  };
+
+  /**
+   * @param {function(*)} [onRejected]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill.prototype['catch'] = function(onRejected) { return this['then'](undefined, onRejected); };
+
+  /**
+   * @param {T} value
+   * @template T
+   */
+  PromisePolyfill.prototype._callAllFulfilled = function(value) {
+    this._fulfilledCallbacks.forEach(function(callback) {
+      setTimeout(function() {  callback.call(null, value); }, 0);
+    });
+    this._fulfilledCallbacks = [];
+  };
+
+  /**
+   * @param {*} reason
+   */
+  PromisePolyfill.prototype._callAllRejected = function(reason) {
+    this._rejectedCallbacks.forEach(function(callback) {
+      setTimeout(function() {  callback.call(null, reason); }, 0);
+    });
+    this._rejectedCallbacks = [];
+  };
+
+  /**
+   * @param {*} [value]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['resolve'] = function(value) { return new PromisePolyfill(function(resolve) { resolve(value); }); };
+
+  /**
+   * @param {*} [reason]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['reject'] = function(reason) { return new PromisePolyfill(function(resolve, reject) { reject(reason); }); };
+
+  /**
+   * @param {Array} promises
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['all'] = function(promises) {
+    if (!promises || !promises.length) { return PromisePolyfill['resolve'](); }
+    return new PromisePolyfill(function(resolve, reject) {
+      var ret = new Array(promises.length);
+      var remaining = promises.length;
+      promises.forEach(function(promise, i) {
+        var p = (promise instanceof PromisePolyfill) ? promise : PromisePolyfill['resolve'](promise);
+        p['then'](
+          function(value) {
+            ret[i] = value;
+            --remaining;
+            if (!remaining) { resolve(ret); }
+          },
+          function(reason) {
+            reject(reason);
+          });
+      });
+    });
+  };
+
+  window['Promise'] = PromisePolyfill;
+})(this);
 
 
 goog.provide('u.QuadTree');
@@ -1730,6 +1506,28 @@ u.QuadTree.Item = function(x, y, w, h, value) {
 };
 
 
+goog.provide('u.UnimplementedException');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.UnimplementedException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'UnimplementedException';
+};
+
+goog.inherits(u.UnimplementedException, u.Exception);
+
+
 goog.provide('u.string');
 
 /**
@@ -1739,4 +1537,384 @@ goog.provide('u.string');
 u.string.capitalizeFirstLetter = function (text) {
   if (!text) { return text; }
   return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+
+goog.provide('u.TimeSpan');
+
+goog.require('u');
+
+/**
+ * @param {number} milliseconds Must be positive
+ * @constructor
+ */
+u.TimeSpan = function(milliseconds) {
+  if (milliseconds < 0) { milliseconds = 0; }
+
+  /**
+   * @type {number}
+   * @private
+   */
+  this._totalMilliseconds = milliseconds;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._totalDays = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._totalHours = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._totalMinutes = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._totalSeconds = null;
+
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._days = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._hours = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._minutes = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._seconds = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._milliseconds = null;
+};
+
+/**
+ * @constant {number}
+ */
+u.TimeSpan.MS_IN_SECOND = 1000;
+
+/**
+ * @constant {number}
+ */
+u.TimeSpan.MS_IN_MINUTE = 60 * u.TimeSpan.MS_IN_SECOND;
+
+/**
+ * @constant {number}
+ */
+u.TimeSpan.MS_IN_HOUR = 60 * u.TimeSpan.MS_IN_MINUTE;
+
+/**
+ * @constant {number}
+ */
+u.TimeSpan.MS_IN_DAY = 24 * u.TimeSpan.MS_IN_HOUR;
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.days = function() {
+  if (this._days == null) { this._days = Math.floor(this.totalDays()); }
+  return this._days;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.hours = function() {
+  if (this._hours == null) {
+    this._hours = Math.floor((this.totalDays() - this.days()) * 24);
+  }
+  return this._hours;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.minutes = function() {
+  if (this._minutes == null) {
+    this._minutes = Math.floor((this.totalHours() - Math.floor(this.totalHours())) * 60);
+  }
+  return this._minutes;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.seconds = function() {
+  if (this._seconds == null) {
+    this._seconds = Math.floor((this.totalMinutes() - Math.floor(this.totalMinutes())) * 60);
+  }
+  return this._seconds;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.milliseconds = function() {
+  if (this._milliseconds == null) {
+    this._milliseconds = this._totalMilliseconds % 1000;
+  }
+  return this._milliseconds;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.totalDays = function() {
+  if (this._totalDays == null) {
+    this._totalDays = this._totalMilliseconds / u.TimeSpan.MS_IN_DAY;
+  }
+  return this._totalDays;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.totalHours = function() {
+  if (this._totalHours == null) {
+    this._totalHours = this._totalMilliseconds / u.TimeSpan.MS_IN_HOUR;
+  }
+  return this._totalHours;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.totalMinutes = function() {
+  if (this._totalMinutes == null) {
+    this._totalMinutes = this._totalMilliseconds / u.TimeSpan.MS_IN_MINUTE;
+  }
+  return this._totalMinutes;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.totalSeconds = function() {
+  if (this._totalSeconds == null) {
+    this._totalSeconds = this._totalMilliseconds / u.TimeSpan.MS_IN_SECOND;
+  }
+  return this._totalSeconds;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.totalMilliseconds = function() { return this._totalMilliseconds; };
+
+/**
+ * TODO: Add a formatting parameter
+ * @override
+ * @returns {string}
+ */
+u.TimeSpan.prototype.toString = function() {
+  var ret = '';
+  if (this.days() > 0) {
+    if (this.days() > 1) { ret += this.days() + ' days'; }
+    else { ret += 'one day'}
+  }
+
+  if (this.hours() > 0) {
+    if (ret) { ret += ', '; }
+    if (this.hours() > 1) { ret += this.hours() + ' hours'; }
+    else { ret += 'one hour'; }
+  }
+
+  if (this.minutes() > 0) {
+    if (ret) { ret += ' and '; }
+    if (this.minutes() > 1) { ret += this.minutes() + ' minutes'; }
+    else { ret += 'one minute'; }
+  } else if (!ret) {
+    ret += 'less than a minute';
+  }
+
+  return u.string.capitalizeFirstLetter(ret);
+};
+
+
+
+goog.provide('u.async');
+goog.require('u.array');
+goog.require('u.reflection');
+
+/**
+ * @param {Array.<function(): Promise>} jobs
+ * @param {boolean} [inOrder] If true, the jobs are executed in order, otherwise, in parallel
+ * @returns {Promise}
+ */
+u.async.all = function(jobs, inOrder) {
+  if (inOrder) {  return u.async.each(jobs, function(job) { return job(); }, inOrder); }
+  return Promise.all(jobs.map(function(job) { return job(); }));
+};
+
+/**
+ * @param {number} n
+ * @param {function(number, (number|undefined)): Promise} iteration
+ * @param {boolean} [inOrder]
+ * @returns {Promise}
+ */
+u.async.for = function(n, iteration, inOrder) {
+  return u.async.each(u.array.range(n), iteration, inOrder);
+};
+
+/**
+ * @param {function(number): Promise} iteration
+ * @returns {Promise}
+ */
+u.async.do = function(iteration) {
+  return new Promise(function(resolve, reject) {
+    var i = 0;
+    var it = function() {
+      return iteration(i++).then(function(condition) {
+        return !condition || it();
+      });
+    };
+    it().then(resolve);
+  });
+};
+
+/**
+ * @param {Array.<T>} items
+ * @param {function(T, number): Promise} iteration
+ * @param {boolean} [inOrder]
+ * @returns {Promise}
+ * @template T
+ */
+u.async.each = function(items, iteration, inOrder) {
+  if (inOrder) {
+    return new Promise(function(resolve, reject) {
+      if (!items || !items.length) {
+        resolve();
+      }
+
+      var d, remaining;
+      d = new Array(items.length+1);
+      d[0] = new Promise(function(resolve) { resolve(); });
+
+      items.forEach(function(item, i) {
+        d[i + 1] = d[i].then(function() { return iteration.call(null, item, i); });
+      });
+
+      d[items.length].then(resolve);
+    });
+  } else {
+    return Promise.all(items.map(function(item, i) { return iteration(item, i); }));
+  }
+};
+
+/**
+ * @constructor
+ * @template T
+ */
+u.async.Deferred = function() {
+  /**
+   * @type {Function}
+   * @private
+   */
+  this._resolve = null;
+
+  /**
+   * @type {Function}
+   * @private
+   */
+  this._reject = null;
+
+  var self = this;
+
+  /**
+   * @type {Promise}
+   * @private
+   */
+  this._promise = new Promise(function() { self._resolve = arguments[0]; self._reject = arguments[1]; });
+};
+
+/**
+ * @param {T} [value]
+ */
+u.async.Deferred.prototype.resolve = function(value) {
+  this._resolve.call(this._promise, value);
+};
+
+/**
+ * @param {*} [reason]
+ */
+u.async.Deferred.prototype.reject = function(reason) {
+  this._reject.call(this._promise, reason);
+};
+
+/**
+ * @param {function((T|undefined))} [onFulfilled]
+ * @param {function(*)} [onRejected]
+ * @returns {Promise}
+ */
+u.async.Deferred.prototype.then = function(onFulfilled, onRejected) {
+  return this._promise.then(onFulfilled, onRejected);
+};
+
+/**
+ * @param {function(*)} onRejected
+ * @returns {Promise}
+ */
+u.async.Deferred.prototype.catch = function(onRejected) {
+  return this._promise.catch(onRejected);
+};
+
+
+goog.provide('u.log');
+
+/**
+ * @param {...} args
+ */
+u.log.info = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (verbose != 'info') { return; }
+
+  var logger = u.log['LOGGER'] || console;
+  logger.info.apply(logger, arguments);
+};
+
+/**
+ * @param {...} args
+ */
+u.log.warn = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (['warn', 'info'].indexOf(verbose) < 0) { return; }
+
+  var logger = u.log['LOGGER'] || console;
+  logger.warn.apply(logger, arguments);
+};
+
+/**
+ * @param {...} args
+ */
+u.log.error = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (['error', 'warn', 'info'].indexOf(verbose) < 0) { return; }
+
+  var logger = u.log['LOGGER'] || console;
+  logger.error.apply(logger, arguments);
 };

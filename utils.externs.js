@@ -347,6 +347,14 @@ u.parseLessConsts = function(opts) {};
 u.reflowForTransition = function(element) {};
 
 /**
+ * @license Ryan ryan@mazondo.com (MIT License)
+ * @param {string} email
+ * @param {{size: (string|number|undefined), rating: (string|undefined), secure: (string|boolean|undefined), backup: (string|undefined)}} options
+ * @returns {string}
+ */
+u.gravatar = function(email, options) {};
+
+/**
  * @param {number} milliseconds Must be positive
  * @constructor
  */
