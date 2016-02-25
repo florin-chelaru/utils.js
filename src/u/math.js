@@ -29,3 +29,15 @@ u.math.scaleLinear = function(domain, range) {
   var r = rangeSize / domainSize;
   return function(x) { return range[0] + (x - domain[0]) * r; };
 };
+
+/**
+ * @param {number} deg
+ * @returns {number}
+ */
+u.math.deg2rad = function(deg) { return deg * Math.PI / 180; };
+
+/**
+ * @param {number} rad
+ * @returns {number}
+ */
+u.math.rad2deg = function(rad) { return rad * 180 / Math.PI; };

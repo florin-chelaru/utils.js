@@ -89,6 +89,18 @@ u.math.floorPrecision = function(x, precision) {};
 u.math.scaleLinear = function(domain, range) {};
 
 /**
+ * @param {number} deg
+ * @returns {number}
+ */
+u.math.deg2rad = function(deg) {};
+
+/**
+ * @param {number} rad
+ * @returns {number}
+ */
+u.math.rad2deg = function(rad) {};
+
+/**
  * @param {string} message
  * @param {Error} [innerException]
  * @constructor
