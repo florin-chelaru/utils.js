@@ -391,6 +391,15 @@ QUnit.test('u.array.unique', function(assert) {
   assert.deepEqual(u.array.unique(arr), exp);
 });
 
+QUnit.test('u.array.uniqueFast', function(assert) {
+  ok(u.array.uniqueFast);
+
+  var e = new u.Exception('my message');
+  var arr = [1, 'a', e, e, e, 'a', 7, 'a', 'b', 1, 12];
+  var exp = [1, 'a', e, 7, 'b', 12];
+  assert.deepEqual(u.array.uniqueFast(arr), exp);
+});
+
 QUnit.test('u.array.indexOf', function(assert) {
   ok(u.array.indexOf);
 

@@ -60,6 +60,22 @@ u.array.unique = function(arr) {
 };
 
 /**
+ * @param {Array.<string|number>} arr
+ * @returns {Array.<string|number>}
+ */
+u.array.uniqueFast = function(arr) {
+  var ret = [];
+  var isSet = {};
+  arr.forEach(function(item) {
+    if (!isSet[item]) {
+      ret.push(item);
+      isSet[item] = true;
+    }
+  });
+  return ret;
+};
+
+/**
  * @param {Array} arr
  * @param {function(*, number):boolean} predicate
  * @param {*} [thisArg]
