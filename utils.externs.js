@@ -50,6 +50,12 @@ u.array.range = function(n, start) {};
 u.array.unique = function(arr) {};
 
 /**
+ * @param {Array.<string|number>} arr
+ * @returns {Array.<string|number>}
+ */
+u.array.uniqueFast = function(arr) {};
+
+/**
  * @param {Array} arr
  * @param {function(*, number):boolean} predicate
  * @param {*} [thisArg]
