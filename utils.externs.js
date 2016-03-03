@@ -373,6 +373,22 @@ u.reflowForTransition = function(element) {};
 u.gravatar = function(email, options) {};
 
 /**
+ * For more details, see: http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+ * @param {string} hex
+ * @returns {{r:number, g:number, b:number}}
+ */
+u.hex2rgb = function(hex) {};
+
+/**
+ * For more details, see: http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+ * @param {number} r
+ * @param {number} g
+ * @param {number} b
+ * @returns {string}
+ */
+u.rgb2hex = function(r, g, b) {};
+
+/**
  * @param {number} milliseconds Must be positive
  * @constructor
  */

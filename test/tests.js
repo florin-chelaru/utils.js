@@ -355,6 +355,26 @@ QUnit.test('u.gravatar', function(assert) {
   assert.equal(u.gravatar('florin.chelaru@gmail.com', {size: 150}), 'http://www.gravatar.com/avatar/bc33879346ddc86d6d0f855a5fb85c69?r=g&s=150');
 });
 
+QUnit.test('u.hex2rgb', function(assert) {
+  assert.ok(u.hex2rgb);
+
+  var rgb = u.hex2rgb('#299dff');
+  assert.ok(rgb);
+  assert.ok(rgb.r);
+  assert.ok(rgb.g);
+  assert.ok(rgb.b);
+  assert.equal(rgb.r, 41);
+  assert.equal(rgb.g, 157);
+  assert.equal(rgb.b, 255);
+});
+
+QUnit.test('u.rgb2hex', function(assert) {
+  assert.ok(u.rgb2hex);
+
+  var hex = u.rgb2hex(41, 157, 255);
+  assert.ok(hex);
+  assert.equal(hex, '#299dff');
+});
 
 QUnit.test('u.array.range', function(assert) {
   assert.ok(u.array.range);

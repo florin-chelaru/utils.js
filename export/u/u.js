@@ -15,3 +15,5 @@ goog.exportSymbol('u.httpGet', u.httpGet);
 goog.exportSymbol('u.parseLessConsts', u.parseLessConsts);
 goog.exportSymbol('u.reflowForTransition', u.reflowForTransition);
 goog.exportSymbol('u.gravatar', u.gravatar);
+goog.exportSymbol('u.hex2rgb', u.hex2rgb);
+goog.exportSymbol('u.rgb2hex', u.rgb2hex);
