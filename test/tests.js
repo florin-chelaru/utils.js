@@ -368,6 +368,14 @@ QUnit.test('u.hex2rgb', function(assert) {
   assert.equal(rgb.b, 255);
 });
 
+QUnit.test('u.hex2rgba', function(assert) {
+  assert.ok(u.hex2rgba);
+
+  var rgba = u.hex2rgba('#299dff', 0.4);
+  assert.ok(rgba);
+  assert.equal(rgba, 'rgba(41,157,255,0.4)');
+});
+
 QUnit.test('u.rgb2hex', function(assert) {
   assert.ok(u.rgb2hex);
 

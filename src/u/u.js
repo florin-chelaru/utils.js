@@ -375,3 +375,14 @@ u.hex2rgb = function(hex) {
 u.rgb2hex = function(r, g, b) {
   return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 };
+
+/**
+ * @param {string} hex
+ * @param {number} [alpha]
+ * @returns {string}
+ */
+u.hex2rgba = function(hex, alpha) {
+  var rgb = u.hex2rgb(hex);
+  alpha == undefined && (alpha = 1);
+  return 'rgba(' + rgb['r'] + ',' + rgb['g'] + ',' + rgb['b'] + ',' + alpha + ')';
+};

@@ -389,6 +389,13 @@ u.hex2rgb = function(hex) {};
 u.rgb2hex = function(r, g, b) {};
 
 /**
+ * @param {string} hex
+ * @param {number} [alpha]
+ * @returns {string}
+ */
+u.hex2rgba = function(hex, alpha) {};
+
+/**
  * @param {number} milliseconds Must be positive
  * @constructor
  */
