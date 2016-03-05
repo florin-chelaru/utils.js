@@ -525,6 +525,8 @@ u.QuadTree.Node = function(x, y, size, parent) {};
  */
 u.QuadTree.Item = function(x, y, w, h, value) {};
 
+u.fast = {};
+
 /**
  * @param {Array} arr
  * @param {function(*, (number|undefined)): *} callback
