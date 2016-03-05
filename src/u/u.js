@@ -84,6 +84,23 @@ u.extend = function(dst, src) {
 };
 
 /**
+ * @param {Array.<T>} arr
+ * @param {function(T): {key: (string|number), value: *}} callback
+ * @returns {Object.<(string|number), *>}
+ * @template T
+ */
+u.mapToObject = function(arr, callback) {
+  var ret = {};
+  var length = arr.length;
+  var v;
+  for (var i = 0; i < length; ++i) {
+    v = callback.apply(arr, [arr[i], i]);
+    ret[v['key']] = v['value'];
+  }
+  return ret;
+};
+
+/**
  * @const {string}
  */
 u.CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';

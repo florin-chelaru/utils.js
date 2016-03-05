@@ -66,12 +66,16 @@ u.array.unique = function(arr) {
 u.array.uniqueFast = function(arr) {
   var ret = [];
   var isSet = {};
-  arr.forEach(function(item) {
+  var length = arr.length;
+  var item;
+  for (var i = 0; i < length; ++i) {
+    item = arr[i];
     if (!isSet[item]) {
       ret.push(item);
       isSet[item] = true;
     }
-  });
+  }
+
   return ret;
 };
 

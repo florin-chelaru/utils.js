@@ -276,6 +276,13 @@ QUnit.test('u.copy', function(assert) {
   notEqual(u.copy(arr), arr);
 });
 
+QUnit.test('u.mapToObject', function(assert) {
+  assert.ok(u.mapToObject);
+
+  var actual = u.mapToObject([1,2,3,4,5], function(x) { return {'key': x % 3, 'value': x}});
+  assert.deepEqual(actual, {1:4, 2:5, 0:3 });
+});
+
 QUnit.test('u.extend', function(assert) {
   assert.ok(u.extend);
 

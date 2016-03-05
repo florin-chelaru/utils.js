@@ -329,6 +329,14 @@ u.map = function(obj, callback, thisArg) {};
 u.copy = function(obj) {};
 
 /**
+ * @param {Array.<T>} arr
+ * @param {function(T): {key: (string|number), value: *}} callback
+ * @returns {Object.<(string|number), *>}
+ * @template T
+ */
+u.mapToObject = function(arr, callback) {};
+
+/**
  * Extends the properties of dst with those of the other arguments of the function;
  * values corresponding to common keys are overriden.
  * @param {Object} dst
