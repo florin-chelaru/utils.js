@@ -21,3 +21,4 @@ goog.require('u.Promise');
 goog.require('u.TimeSpan');
 goog.require('u.UnimplementedException');
 goog.require('u.QuadTree');
+goog.require('u.fast');

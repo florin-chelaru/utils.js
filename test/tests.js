@@ -794,3 +794,17 @@ QUnit.test('u.log', function(assert) {
   assert.equal(warnCalls, 2);
   assert.equal(errCalls, 3);
 });
+
+QUnit.test('u.fast.map', function(assert) {
+  assert.ok(u.fast.map);
+  var inc = function(d) { return d+1; };
+  assert.deepEqual(u.fast.map([1,2,3], inc), [1,2,3].map(inc));
+});
+
+QUnit.test('u.fast.concat', function(assert) {
+  assert.ok(u.fast.concat);
+
+  var x = [[1,2,3],[4,5,6],[7,8]];
+
+  assert.deepEqual(u.fast.concat(x), x.reduce(function(a1, a2) { return a1.concat(a2); }));
+});

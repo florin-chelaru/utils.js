@@ -524,3 +524,16 @@ u.QuadTree.Node = function(x, y, size, parent) {};
  * @constructor
  */
 u.QuadTree.Item = function(x, y, w, h, value) {};
+
+/**
+ * @param {Array} arr
+ * @param {function(*, (number|undefined)): *} callback
+ * @returns {Array}
+ */
+u.fast.map = function(arr, callback) {};
+
+/**
+ * @param {Array.<Array>} arrays
+ * @returns {Array}
+ */
+u.fast.concat = function(arrays) {};
