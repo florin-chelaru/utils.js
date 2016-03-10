@@ -8,3 +8,4 @@ goog.require('u.fast');
 
 goog.exportSymbol('u.fast.map', u.fast.map);
 goog.exportSymbol('u.fast.concat', u.fast.concat);
+goog.exportSymbol('u.fast.filter', u.fast.filter);

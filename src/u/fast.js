@@ -48,3 +48,18 @@ u.fast.concat = function(arrays) {
   }
   return ret;
 };
+
+/**
+ * @param {Array} arr
+ * @param {function(*, (number|undefined)): boolean} predicate
+ * @returns {Array}
+ */
+u.fast.filter = function(arr, predicate) {
+  var length = arr.length;
+  var ret = [];
+  for (var i = 0; i < length; ++i) {
+    var item = arr[i];
+    if (predicate(item, i)) { ret.push(item); }
+  }
+  return ret;
+};

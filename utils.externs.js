@@ -539,3 +539,10 @@ u.fast.map = function(arr, callback) {};
  * @returns {Array}
  */
 u.fast.concat = function(arrays) {};
+
+/**
+ * @param {Array} arr
+ * @param {function(*, (number|undefined)): boolean} predicate
+ * @returns {Array}
+ */
+u.fast.filter = function(arr, predicate) {};

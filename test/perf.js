@@ -61,13 +61,13 @@ window.onload = function() {
     100
   ));*/
 
-  console.info(perf(
+  /*console.info(perf(
     'Array.prototype.concat',
     function() { var z = x.concat(y); },
     'u.fast.concat',
     function() { var z = u.fast.concat([x, y]); },
     300
-  ));
+  ));*/
 
   /*console.info(perf(
     'u.fast.concatPush',
@@ -92,5 +92,13 @@ window.onload = function() {
     function() { var y = [x, x, x, x, x].reduce(function(x1, x2) { return x1.concat(x2); }); },
     100
   ));*/
+
+  console.info(perf(
+   'Array.prototype.filter',
+   function() { var z = x.filter(function(item) { return item < 0.5; }); },
+   'u.fast.filter',
+   function() { var z = u.fast.filter(x, function(item) { return item < 0.5; }); },
+   50
+   ));
 };
 

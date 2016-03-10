@@ -808,3 +808,11 @@ QUnit.test('u.fast.concat', function(assert) {
 
   assert.deepEqual(u.fast.concat(x), x.reduce(function(a1, a2) { return a1.concat(a2); }));
 });
+
+QUnit.test('u.fast.filter', function(assert) {
+  assert.ok(u.fast.filter);
+
+  var x = [1,2,3,4,5,6,7,8,9];
+
+  assert.deepEqual(u.fast.filter(x, function(it) { return it % 3 == 0; }), [3,6,9]);
+});
