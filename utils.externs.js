@@ -546,3 +546,10 @@ u.fast.concat = function(arrays) {};
  * @returns {Array}
  */
 u.fast.filter = function(arr, predicate) {};
+
+/**
+ * @param {Array} arr
+ * @param {function((*|undefined), (number|undefined), (Array|undefined))} callback
+ * @param {*} [thisArg]
+ */
+u.fast.forEach = function(arr, callback, thisArg) {};

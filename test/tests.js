@@ -816,3 +816,13 @@ QUnit.test('u.fast.filter', function(assert) {
 
   assert.deepEqual(u.fast.filter(x, function(it) { return it % 3 == 0; }), [3,6,9]);
 });
+
+QUnit.test('u.fast.forEach', function(assert) {
+  assert.ok(u.fast.forEach);
+
+  var x = [1,2,3,4,5,6,7,8,9];
+
+  var sum = 0;
+  u.fast.forEach(x, function(el) { sum += el; });
+  assert.equal(sum, x.reduce(function(el1, el2) { return el1 + el2; }));
+});

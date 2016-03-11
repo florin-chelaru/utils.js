@@ -93,12 +93,24 @@ window.onload = function() {
     100
   ));*/
 
-  console.info(perf(
+  /*console.info(perf(
    'Array.prototype.filter',
    function() { var z = x.filter(function(item) { return item < 0.5; }); },
    'u.fast.filter',
    function() { var z = u.fast.filter(x, function(item) { return item < 0.5; }); },
    50
+   ));*/
+
+  var sum1 = 0;
+  var sum2 = 0;
+
+  console.info(perf(
+   'Array.prototype.forEach',
+   function() { x.forEach(function(y, i) { sum1 += y; }); },
+   'u.fast.forEach',
+   function() { u.fast.forEach(x, function(y, i) { sum2 += y; }); },
+   30
    ));
+  console.log(sum1, sum2);
 };
 

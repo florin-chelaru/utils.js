@@ -63,3 +63,15 @@ u.fast.filter = function(arr, predicate) {
   }
   return ret;
 };
+
+/**
+ * @param {Array} arr
+ * @param {function((*|undefined), (number|undefined), (Array|undefined))} callback
+ * @param {*} [thisArg]
+ */
+u.fast.forEach = function(arr, callback, thisArg) {
+  var length = arr.length;
+  for (var i = 0; i < length; ++i) {
+    callback.call(thisArg, arr[i], i, arr);
+  }
+};
