@@ -104,13 +104,22 @@ window.onload = function() {
   var sum1 = 0;
   var sum2 = 0;
 
-  console.info(perf(
+  /*console.info(perf(
    'Array.prototype.forEach',
    function() { x.forEach(function(y, i) { sum1 += y; }); },
    'u.fast.forEach',
    function() { u.fast.forEach(x, function(y, i) { sum2 += y; }); },
    30
-   ));
+   ));*/
+
+  console.info(perf(
+    'for loop',
+    function() { for (var i = 0; i < x.length; ++i) { sum1 += x[i]; } },
+    'u.fast.forEach',
+    function() { u.fast.forEach(x, function(y, i) { sum2 += y; }); },
+    30
+  ));
+
   console.log(sum1, sum2);
 };
 

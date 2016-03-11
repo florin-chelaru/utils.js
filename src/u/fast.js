@@ -9,7 +9,7 @@ goog.provide('u.fast');
 /**
  * @param {Array} arr
  * @param {function(*, (number|undefined)): *} callback
- * @returns {Array}
+ * @returns {!Array}
  */
 u.fast.map = function(arr, callback) {
   var length = arr.length;
@@ -22,10 +22,10 @@ u.fast.map = function(arr, callback) {
 
 /**
  * @param {Array.<Array>} arrays
- * @returns {Array}
+ * @returns {!Array}
  */
 u.fast.concat = function(arrays) {
-  if (arrays.length == 1) { return arrays[0]; }
+  if (arrays.length == 1) { return /** @type {!Array} */ (arrays[0]); }
   if (arrays.length == 2) {
     return arrays[0].concat(arrays[1]);
   }
@@ -52,7 +52,7 @@ u.fast.concat = function(arrays) {
 /**
  * @param {Array} arr
  * @param {function(*, (number|undefined)): boolean} predicate
- * @returns {Array}
+ * @returns {!Array}
  */
 u.fast.filter = function(arr, predicate) {
   var length = arr.length;

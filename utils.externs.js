@@ -530,20 +530,20 @@ u.fast = {};
 /**
  * @param {Array} arr
  * @param {function(*, (number|undefined)): *} callback
- * @returns {Array}
+ * @returns {!Array}
  */
 u.fast.map = function(arr, callback) {};
 
 /**
  * @param {Array.<Array>} arrays
- * @returns {Array}
+ * @returns {!Array}
  */
 u.fast.concat = function(arrays) {};
 
 /**
  * @param {Array} arr
  * @param {function(*, (number|undefined)): boolean} predicate
- * @returns {Array}
+ * @returns {!Array}
  */
 u.fast.filter = function(arr, predicate) {};
 
