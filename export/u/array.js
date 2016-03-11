@@ -11,4 +11,5 @@ goog.exportSymbol('u.array.fill', u.array.fill);
 goog.exportSymbol('u.array.range', u.array.range);
 goog.exportSymbol('u.array.unique', u.array.unique);
 goog.exportSymbol('u.array.uniqueFast', u.array.uniqueFast);
+goog.exportSymbol('u.array.uniqueKey', u.array.uniqueKey);
 goog.exportSymbol('u.array.indexOf', u.array.indexOf);

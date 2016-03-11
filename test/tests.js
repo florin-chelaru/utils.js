@@ -424,15 +424,31 @@ QUnit.test('u.array.unique', function(assert) {
   var arr = [1, 'a', e, e, e, 'a', 7, 'a', 'b', 1, 12];
   var exp = [1, 'a', e, 7, 'b', 12];
   assert.deepEqual(u.array.unique(arr), exp);
+
+  var a2 = [{a:1}, {b:2}, {a:1}, {c:3}, {b:2}, {d:4}, {b:2}];
+  assert.deepEqual(u.array.unique(a2, function(e1, e2) { return Object.keys(e1)[0] == Object.keys(e2)[0]; }), [{a:1}, {b:2}, {c:3}, {d:4}]);
 });
 
 QUnit.test('u.array.uniqueFast', function(assert) {
   ok(u.array.uniqueFast);
 
   var e = new u.Exception('my message');
-  var arr = [1, 'a', e, e, e, 'a', 7, 'a', 'b', 1, 12];
-  var exp = [1, 'a', e, 7, 'b', 12];
+  var arr = [1, 'a', 'a', 7, 'a', 'b', 1, 12];
+  var exp = [1, 'a', 7, 'b', 12];
   assert.deepEqual(u.array.uniqueFast(arr), exp);
+});
+
+QUnit.test('u.array.uniqueKey', function(assert) {
+  ok(u.array.uniqueKey);
+
+  var e = new u.Exception('my message');
+  var e2 = new u.Exception('my message');
+  var e3 = new u.Exception('my other message');
+  var arr = [1, 'a', e, e2, e, e3, e, 'a', 7, 'a', 'b', 1, 12];
+  var exp = [1, 'a', e, e3, 7, 'b', 12];
+  assert.deepEqual(u.array.uniqueKey(arr, function(it) {
+    return (it instanceof u.Exception) ? it.message : it;
+  }), exp);
 });
 
 QUnit.test('u.array.indexOf', function(assert) {

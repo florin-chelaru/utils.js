@@ -45,15 +45,23 @@ u.array.range = function(n, start) {};
  * Complexity is suboptimal: O(n^2); for strings and numbers,
  * it can be done faster, using a map
  * @param {Array} arr
+ * @param {function(*,*): boolean} [equals]
  * @returns {Array}
  */
-u.array.unique = function(arr) {};
+u.array.unique = function(arr, equals) {};
 
 /**
  * @param {Array.<string|number>} arr
  * @returns {Array.<string|number>}
  */
 u.array.uniqueFast = function(arr) {};
+
+/**
+ * @param {Array} arr
+ * @param {function(*): (string|number)} key
+ * @returns {Array}
+ */
+u.array.uniqueKey = function(arr, key) {};
 
 /**
  * @param {Array} arr

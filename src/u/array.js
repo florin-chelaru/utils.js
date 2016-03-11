@@ -50,11 +50,16 @@ u.array.range = function(n, start) {
  * Complexity is suboptimal: O(n^2); for strings and numbers,
  * it can be done faster, using a map
  * @param {Array} arr
+ * @param {function(*,*): boolean} [equals]
  * @returns {Array}
  */
-u.array.unique = function(arr) {
+u.array.unique = function(arr, equals) {
   return arr.reduce(function(result, item) {
-    if (result.indexOf(item) < 0) { result.push(item); }
+    if (!equals) {
+      if (result.indexOf(item) < 0) { result.push(item); }
+    } else {
+      if (u.array.indexOf(result, function(it) { return equals(it, item); }) < 0) { result.push(item); }
+    }
     return result;
   }, []);
 };
@@ -73,6 +78,28 @@ u.array.uniqueFast = function(arr) {
     if (!isSet[item]) {
       ret.push(item);
       isSet[item] = true;
+    }
+  }
+
+  return ret;
+};
+
+/**
+ * @param {Array} arr
+ * @param {function(*, (number|undefined)): (string|number)} key
+ * @returns {Array}
+ */
+u.array.uniqueKey = function(arr, key) {
+  var ret = [];
+  var isSet = {};
+  var length = arr.length;
+  var item, k;
+  for (var i = 0; i < length; ++i) {
+    item = arr[i];
+    k = key(item, i);
+    if (!isSet[k]) {
+      ret.push(item);
+      isSet[k] = true;
     }
   }
 
