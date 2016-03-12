@@ -163,6 +163,12 @@ QUnit.test('u.QuadTree', function(assert) {
   var values = qt.values();
   assert.ok(values.every(function(value) { return u.array.indexOf(items, function(item) { return item.value == value; }) >= 0; }));
 
+  var qtItems = qt.items();
+  var eq = function(x, y) { return Math.abs(x - y) < 0.0001; };
+  assert.ok(qtItems.every(function(item) { return u.array.indexOf(items, function(it) {
+      return eq(it.x, item.x) && eq(it.y, item.y) && eq(it.w, item.w) && eq(it.h, item.h) && it.value == item.value;
+    }) >= 0; }));
+
   var svgSize = 750;
   var xScale = d3.scale.linear().domain([x, x+w])
     .range([0, svgSize]);

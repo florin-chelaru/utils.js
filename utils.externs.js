@@ -520,6 +520,11 @@ u.QuadTree.prototype.leaves = function() {};
 u.QuadTree.prototype.values = function() {};
 
 /**
+ * @returns {Array.<{x: number, y: number, w: number, h: number, value: *}>}
+ */
+u.QuadTree.prototype.items = function() {};
+
+/**
  * @param {number} x
  * @param {number} y
  * @param {number} size

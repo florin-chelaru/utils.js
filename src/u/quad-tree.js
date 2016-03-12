@@ -249,14 +249,16 @@ u.QuadTree.prototype.collisions = function(x, y) {
  */
 u.QuadTree.prototype._computeCollisions = function(node, p, ret) {
   var self = this;
-  Array.prototype.push.apply(ret, node.items
-    .filter(function(item) {
+  Array.prototype.push.apply(ret, u.fast.map(u.fast.filter(node.items,
+    // filter:
+    function(item) {
       return item.x <= p['x'] &&
           item.x + item.w > p['x'] &&
           item.y <= p['y'] &&
           item.y + item.h > p['y'];
-    })
-    .map(function(item) {
+    }),
+    // map:
+    function(item) {
       return {'x': self._scaleX(item.x), 'y': self._scaleY(item.y), 'w': self._scaleW(item.w), 'h': self._scaleH(item.h), 'value': item.value};
     })
   );
@@ -304,14 +306,16 @@ u.QuadTree.prototype.overlaps = function(x, y, w, h) {
  */
 u.QuadTree.prototype._computeOverlaps = function(node, item, ret) {
   var self = this;
-  Array.prototype.push.apply(ret, node.items
-    .filter(function(it) {
+  Array.prototype.push.apply(ret, u.fast.map(u.fast.filter(node.items,
+    // filter
+    function(it) {
       return it.x < item.x + item.w &&
         it.x + it.w > item.x &&
         it.y < item.y + item.h &&
         it.y + it.h > item.y;
-    })
-    .map(function(it) {
+    }),
+    // map
+    function(it) {
       return {'x': self._scaleX(it.x), 'y': self._scaleY(it.y), 'w': self._scaleW(it.w), 'h': self._scaleH(it.h), 'value': it.value};
     })
   );
@@ -394,6 +398,25 @@ u.QuadTree.prototype.values = function() {
   var ret = [];
   var dfs = function(node) {
     ret = ret.concat(u.fast.map(node.items, function(item) { return item.value; }));
+    if (node.ne) { dfs(node.ne); }
+    if (node.nw) { dfs(node.nw); }
+    if (node.sw) { dfs(node.sw); }
+    if (node.se) { dfs(node.se); }
+  };
+  dfs(this._root);
+  return ret;
+};
+
+/**
+ * @returns {Array.<{x: number, y: number, w: number, h: number, value: *}>}
+ */
+u.QuadTree.prototype.items = function() {
+  var self = this;
+  var ret = [];
+  var dfs = function(node) {
+    ret = ret.concat(u.fast.map(node.items, function(it) {
+      return {'x': self._scaleX(it.x), 'y': self._scaleY(it.y), 'w': self._scaleW(it.w), 'h': self._scaleH(it.h), 'value': it.value};
+    }));
     if (node.ne) { dfs(node.ne); }
     if (node.nw) { dfs(node.nw); }
     if (node.sw) { dfs(node.sw); }

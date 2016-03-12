@@ -13,3 +13,4 @@ goog.exportProperty(u.QuadTree.prototype, 'collisions', u.QuadTree.prototype.col
 goog.exportProperty(u.QuadTree.prototype, 'overlaps', u.QuadTree.prototype.overlaps);
 goog.exportProperty(u.QuadTree.prototype, 'leaves', u.QuadTree.prototype.leaves);
 goog.exportProperty(u.QuadTree.prototype, 'values', u.QuadTree.prototype.values);
+goog.exportProperty(u.QuadTree.prototype, 'items', u.QuadTree.prototype.items);
