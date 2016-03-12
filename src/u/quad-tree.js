@@ -388,6 +388,22 @@ u.QuadTree.prototype._computeLeaves = function(node, ret) {
 };
 
 /**
+ * @returns {Array}
+ */
+u.QuadTree.prototype.values = function() {
+  var ret = [];
+  var dfs = function(node) {
+    ret = ret.concat(u.fast.map(node.items, function(item) { return item.value; }));
+    if (node.ne) { dfs(node.ne); }
+    if (node.nw) { dfs(node.nw); }
+    if (node.sw) { dfs(node.sw); }
+    if (node.se) { dfs(node.se); }
+  };
+  dfs(this._root);
+  return ret;
+};
+
+/**
  * @param {number} x
  * @param {number} y
  * @param {number} size

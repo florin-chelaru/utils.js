@@ -315,7 +315,7 @@ u.log.error = function(args) {};
 
 /**
  * @param {Array|Object.<number|string, *>} obj
- * @param {function((number|string), *)} callback
+ * @param {function((number|string), *)|Function} callback
  * @returns {Array|Object}
  */
 u.each = function(obj, callback) {};
@@ -515,6 +515,11 @@ u.QuadTree.prototype.overlaps = function(x, y, w, h) {};
 u.QuadTree.prototype.leaves = function() {};
 
 /**
+ * @returns {Array}
+ */
+u.QuadTree.prototype.values = function() {};
+
+/**
  * @param {number} x
  * @param {number} y
  * @param {number} size
@@ -537,7 +542,7 @@ u.fast = {};
 
 /**
  * @param {Array} arr
- * @param {function(*, (number|undefined)): *} callback
+ * @param {function(*, (number|undefined)): *|Function} callback
  * @returns {!Array}
  */
 u.fast.map = function(arr, callback) {};
@@ -550,14 +555,14 @@ u.fast.concat = function(arrays) {};
 
 /**
  * @param {Array} arr
- * @param {function(*, (number|undefined)): boolean} predicate
+ * @param {function(*, (number|undefined)): boolean|Function} predicate
  * @returns {!Array}
  */
 u.fast.filter = function(arr, predicate) {};
 
 /**
  * @param {Array} arr
- * @param {function((*|undefined), (number|undefined), (Array|undefined))} callback
+ * @param {function((*|undefined)=, (number|undefined)=, (Array|undefined)=)|Function} callback
  * @param {*} [thisArg]
  */
 u.fast.forEach = function(arr, callback, thisArg) {};
