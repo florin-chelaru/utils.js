@@ -411,6 +411,49 @@ u.rgb2hex = function(r, g, b) {};
  */
 u.hex2rgba = function(hex, alpha) {};
 
+
+/**
+ * Copyright (c) 2009-2016, Alexis Sellier <self@cloudhead.net>
+ * See for details: https://github.com/less/less.js
+ * @param {string} hex
+ * @returns {{h: number, s: number, l: number}}
+ */
+u.hex2hsl = function(hex) {};
+
+/**
+ * Copyright (c) 2009-2016, Alexis Sellier <self@cloudhead.net>
+ * See for details: https://github.com/less/less.js
+ * @param {{h:number, s:number, l:number}} hsl
+ * @returns {{r: number, g: number, b: number}}
+ */
+u.hsl2rgb = function(hsl) {};
+
+/**
+ * @param {{h:number, s:number, l:number}} hsl
+ * @returns {string}
+ */
+u.hsl2hex = function(hsl) {};
+
+/**
+ * Copyright (c) 2009-2016, Alexis Sellier <self@cloudhead.net>
+ * See for details: https://github.com/less/less.js
+ * @param {string} hex
+ * @param {number} pc Percent
+ * @returns {string}
+ */
+u.lighten = function (hex, pc) {};
+
+/**
+ * Copyright (c) 2009-2016, Alexis Sellier <self@cloudhead.net>
+ * See for details: https://github.com/less/less.js
+ * @param {string} hex
+ * @param {number} pc Percent
+ * @returns {string}
+ */
+u.darken = function (hex, pc) {};
+
+
+
 /**
  * @param {number} milliseconds Must be positive
  * @constructor
