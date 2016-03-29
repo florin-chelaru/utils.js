@@ -403,3 +403,108 @@ u.hex2rgba = function(hex, alpha) {
   alpha == undefined && (alpha = 1);
   return 'rgba(' + rgb['r'] + ',' + rgb['g'] + ',' + rgb['b'] + ',' + alpha + ')';
 };
+
+/**
+ * Copyright (c) 2009-2016, Alexis Sellier <self@cloudhead.net>
+ * See for details: https://github.com/less/less.js
+ * @param {string} hex
+ * @returns {{h: number, s: number, l: number}}
+ */
+u.hex2hsl = function(hex) {
+  var rgb = u.hex2rgb(hex);
+  var r = rgb['r'] / 255,
+    g = rgb['g'] / 255,
+    b = rgb['b'] / 255;
+
+  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var h, s, l = (max + min) / 2, d = max - min;
+
+  if (max === min) {
+    h = s = 0;
+  } else {
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return { 'h': h * 360, 's': s, 'l': l };
+};
+
+/**
+ * Copyright (c) 2009-2016, Alexis Sellier <self@cloudhead.net>
+ * See for details: https://github.com/less/less.js
+ * @param {{h:number, s:number, l:number}} hsl
+ * @returns {{r: number, g: number, b: number}}
+ */
+u.hsl2rgb = function(hsl) {
+  var h = hsl['h'], s = hsl['s'], l = hsl['l'];
+  var m1, m2;
+
+  function hue(h) {
+    h = h < 0 ? h + 1 : (h > 1 ? h - 1 : h);
+    if (h * 6 < 1) {
+      return m1 + (m2 - m1) * h * 6;
+    } else if (h * 2 < 1) {
+      return m2;
+    } else if (h * 3 < 2) {
+      return m1 + (m2 - m1) * (2 / 3 - h) * 6;
+    } else {
+      return m1;
+    }
+  }
+
+  h = (Number(h) % 360) / 360;
+  s = Math.min(1, Math.max(0, Number(s))); l = Math.min(1, Math.max(0, Number(l)));
+
+  m2 = l <= 0.5 ? l * (s + 1) : l + s - l * s;
+  m1 = l * 2 - m2;
+
+  return {
+    'r': Math.floor(hue(h + 1 / 3) * 255),
+    'g': Math.floor(hue(h) * 255),
+    'b': Math.floor(hue(h - 1 / 3) * 255)
+  };
+};
+
+/**
+ * @param {{h:number, s:number, l:number}} hsl
+ * @returns {string}
+ */
+u.hsl2hex = function(hsl) {
+  var rgb = u.hsl2rgb(hsl);
+  return u.rgb2hex(rgb['r'], rgb['g'], rgb['b']);
+};
+
+/**
+ * Copyright (c) 2009-2016, Alexis Sellier <self@cloudhead.net>
+ * See for details: https://github.com/less/less.js
+ * @param {string} hex
+ * @param {number} pc Percent
+ * @returns {string}
+ */
+u.lighten = function (hex, pc) {
+  var hsl = u.hex2hsl(hex);
+
+  hsl['l'] += pc;
+  hsl['l'] = Math.min(1, Math.max(0, hsl['l']));
+  return u.hsl2hex(hsl);
+};
+
+/**
+ * Copyright (c) 2009-2016, Alexis Sellier <self@cloudhead.net>
+ * See for details: https://github.com/less/less.js
+ * @param {string} hex
+ * @param {number} pc Percent
+ * @returns {string}
+ */
+u.darken = function (hex, pc) {
+  var hsl = u.hex2hsl(hex);
+
+  hsl['l'] -= pc;
+  hsl['l'] = Math.min(1, Math.max(0, hsl['l']));
+  return u.hsl2hex(hsl);
+};

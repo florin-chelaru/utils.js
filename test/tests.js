@@ -400,6 +400,24 @@ QUnit.test('u.rgb2hex', function(assert) {
   assert.equal(hex, '#299dff');
 });
 
+QUnit.test('u.lighten', function(assert) {
+  assert.ok(u.lighten);
+
+  var hex = '#2196F3';
+
+  var lightened = u.lighten(hex, 0.35);
+  assert.equal(lightened, '#cae6fc');
+});
+
+QUnit.test('u.darken', function(assert) {
+  assert.ok(u.darken);
+
+  var hex = '#2196F3';
+
+  var darkened = u.darken(hex, 0.35);
+  assert.equal(darkened, '#05355c');
+});
+
 QUnit.test('u.array.range', function(assert) {
   assert.ok(u.array.range);
 

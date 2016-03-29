@@ -19,3 +19,8 @@ goog.exportSymbol('u.gravatar', u.gravatar);
 goog.exportSymbol('u.hex2rgb', u.hex2rgb);
 goog.exportSymbol('u.hex2rgba', u.hex2rgba);
 goog.exportSymbol('u.rgb2hex', u.rgb2hex);
+goog.exportSymbol('u.hex2hsl', u.hex2hsl);
+goog.exportSymbol('u.hsl2hex', u.hsl2hex);
+goog.exportSymbol('u.hsl2rgb', u.hsl2rgb);
+goog.exportSymbol('u.lighten', u.lighten);
+goog.exportSymbol('u.darken', u.darken);
