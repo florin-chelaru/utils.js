@@ -15,885 +15,6 @@
 */
 
 
-goog.provide('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends Error
- */
-u.Exception = function(message, innerException) {
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._errorCore = new Error(message);
-
-  /**
-   * @type {Error}
-   * @private
-   */
-  this._innerException = innerException || null;
-
-  /**
-   * @type {string}
-   */
-  this.message = this._errorCore.message;
-
-  /**
-   * @type {string}
-   */
-  this.name = 'Exception';
-};
-
-goog.inherits(u.Exception, Error);
-
-Object.defineProperties(u.Exception.prototype, {
-  /**
-   * @property
-   * @type {string}
-   * @name u.Exception#stack
-   */
-  'stack': /** @type {string} */ ({
-    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
-  }),
-
-  /**
-   * @property
-   * @type {Error}
-   * @name u.Exception#innerException
-   */
-  'innerException': /** @type {Error} */ ({
-    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
-  })
-});
-
-
-goog.provide('u.AbstractMethodException');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.AbstractMethodException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'AbstractMethodException';
-};
-
-goog.inherits(u.AbstractMethodException, u.Exception);
-
-
-goog.provide('u.array');
-
-/**
- * @param {Arguments|Array} args
- * @returns {Array}
- */
-u.array.fromArguments = function(args) {
-  return /** @type {Array} */ (Array.isArray(args) ? args : [].slice.apply(args));
-};
-
-/**
- * Creates an array of length n filled with value
- * @param {number} n
- * @param {*} value
- * @returns {Array}
- */
-u.array.fill = function(n, value) {
-  n = n || 0;
-  var ret = new Array(n);
-  for (var i = 0; i < n; ++i) { ret[i] = value; }
-  return ret;
-};
-
-/**
- * Generates an array of consecutive numbers starting from start, or 0 if it's not defined
- * @param {number} n
- * @param {number} [start]
- * @returns {Array.<number>}
- */
-u.array.range = function(n, start) {
-  start = start || 0;
-  n = n || 0;
-
-  var result = new Array(n);
-  for (var i = 0; i < n; ++i) {
-    result[i] = i + start;
-  }
-
-  return result;
-};
-
-/**
- * Returns a new array where all elements are unique
- * Complexity is suboptimal: O(n^2); for strings and numbers,
- * it can be done faster, using a map
- * @param {Array} arr
- * @param {function(*,*): boolean} [equals]
- * @returns {Array}
- */
-u.array.unique = function(arr, equals) {
-  return arr.reduce(function(result, item) {
-    if (!equals) {
-      if (result.indexOf(item) < 0) { result.push(item); }
-    } else {
-      if (u.array.indexOf(result, function(it) { return equals(it, item); }) < 0) { result.push(item); }
-    }
-    return result;
-  }, []);
-};
-
-/**
- * @param {Array.<string|number>} arr
- * @returns {Array.<string|number>}
- */
-u.array.uniqueFast = function(arr) {
-  var ret = [];
-  var isSet = {};
-  var length = arr.length;
-  var item;
-  for (var i = 0; i < length; ++i) {
-    item = arr[i];
-    if (!isSet[item]) {
-      ret.push(item);
-      isSet[item] = true;
-    }
-  }
-
-  return ret;
-};
-
-/**
- * @param {Array} arr
- * @param {function(*, (number|undefined)): (string|number)} key
- * @returns {Array}
- */
-u.array.uniqueKey = function(arr, key) {
-  var ret = [];
-  var isSet = {};
-  var length = arr.length;
-  var item, k;
-  for (var i = 0; i < length; ++i) {
-    item = arr[i];
-    k = key(item, i);
-    if (!isSet[k]) {
-      ret.push(item);
-      isSet[k] = true;
-    }
-  }
-
-  return ret;
-};
-
-/**
- * @param {Array} arr
- * @param {function(*, number):boolean} predicate
- * @param {*} [thisArg]
- * @returns {number}
- */
-u.array.indexOf = function(arr, predicate, thisArg) {
-  for (var i = 0; i < arr.length; ++i) {
-    if (predicate.call(thisArg, arr[i], i)) {
-      return i;
-    }
-  }
-  return -1;
-};
-
-
-goog.provide('u.reflection');
-goog.require('u.array');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.reflection.ReflectionException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'ReflectionException';
-};
-
-goog.inherits(u.reflection.ReflectionException, u.Exception);
-
-
-/**
- * Evaluates the given string into a constructor for a type
- * @param {string} typeName
- * @param {Object} [context]
- * @returns {function(new: T)}
- * @template T
- */
-u.reflection.evaluateFullyQualifiedTypeName = function(typeName, context) {
-  var result;
-
-  try {
-    var namespaces = typeName.split('.');
-    var func = namespaces.pop();
-    var ctx = context || window;
-    for (var i = 0; i < namespaces.length; ++i) {
-      ctx = ctx[namespaces[i]];
-    }
-    result = ctx[func];
-  } catch (error) {
-    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName, error);
-  }
-
-  if (typeof(result) !== 'function') {
-    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName);
-  }
-
-  return result;
-};
-
-/**
- * Applies the given constructor to the given parameters and creates
- * a new instance of the class it defines
- * @param {function(new: T)} ctor
- * @param {Array|Arguments} params
- * @returns {T}
- * @template T
- */
-u.reflection.applyConstructor = function(ctor, params) {
-  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params || []))));
-};
-
-/**
- * Wraps given type around the given object, so the object's prototype matches the one of the type
- * @param {Object} o
- * @param {function(new: T)} type
- * @returns {T}
- * @template T
- */
-u.reflection.wrap = function(o, type) {
-  //o.__proto__ = type.prototype;
-  //return o;
-
-  if (o instanceof type) { return o; }
-
-  var props = {};
-  for (var p in o) {
-    if (!o.hasOwnProperty(p)) { continue; }
-    (function(p) {
-      props[p] = {
-        get: function() { return o[p]; },
-        set: function(value) { o[p] = value; },
-        configurable: true,
-        enumerable: true
-      };
-    })(p);
-  }
-
-  return Object.create(type.prototype, props);
-};
-
-
-goog.provide('u.async');
-goog.require('u.array');
-goog.require('u.reflection');
-
-/**
- * @param {Array.<function(): Promise>} jobs
- * @param {boolean} [inOrder] If true, the jobs are executed in order, otherwise, in parallel
- * @returns {Promise}
- */
-u.async.all = function(jobs, inOrder) {
-  if (inOrder) {  return u.async.each(jobs, function(job) { return job(); }, inOrder); }
-  return Promise.all(jobs.map(function(job) { return job(); }));
-};
-
-/**
- * @param {number} n
- * @param {function(number, (number|undefined)): Promise} iteration
- * @param {boolean} [inOrder]
- * @returns {Promise}
- */
-u.async.for = function(n, iteration, inOrder) {
-  return u.async.each(u.array.range(n), iteration, inOrder);
-};
-
-/**
- * @param {function(number): Promise} iteration
- * @returns {Promise}
- */
-u.async.do = function(iteration) {
-  return new Promise(function(resolve, reject) {
-    var i = 0;
-    var it = function() {
-      return iteration(i++).then(function(condition) {
-        return !condition || it();
-      });
-    };
-    it().then(resolve);
-  });
-};
-
-/**
- * @param {Array.<T>} items
- * @param {function(T, number): Promise} iteration
- * @param {boolean} [inOrder]
- * @returns {Promise}
- * @template T
- */
-u.async.each = function(items, iteration, inOrder) {
-  if (inOrder) {
-    return new Promise(function(resolve, reject) {
-      if (!items || !items.length) {
-        resolve();
-      }
-
-      var d, remaining;
-      d = new Array(items.length+1);
-      d[0] = new Promise(function(resolve) { resolve(); });
-
-      items.forEach(function(item, i) {
-        d[i + 1] = d[i].then(function() { return iteration.call(null, item, i); });
-      });
-
-      d[items.length].then(resolve);
-    });
-  } else {
-    return Promise.all(items.map(function(item, i) { return iteration(item, i); }));
-  }
-};
-
-/**
- * @constructor
- * @template T
- */
-u.async.Deferred = function() {
-  /**
-   * @type {Function}
-   * @private
-   */
-  this._resolve = null;
-
-  /**
-   * @type {Function}
-   * @private
-   */
-  this._reject = null;
-
-  var self = this;
-
-  /**
-   * @type {Promise}
-   * @private
-   */
-  this._promise = new Promise(function() { self._resolve = arguments[0]; self._reject = arguments[1]; });
-};
-
-/**
- * @param {T} [value]
- */
-u.async.Deferred.prototype.resolve = function(value) {
-  this._resolve.call(this._promise, value);
-};
-
-/**
- * @param {*} [reason]
- */
-u.async.Deferred.prototype.reject = function(reason) {
-  this._reject.call(this._promise, reason);
-};
-
-/**
- * @param {function((T|undefined))} [onFulfilled]
- * @param {function(*)} [onRejected]
- * @returns {Promise}
- */
-u.async.Deferred.prototype.then = function(onFulfilled, onRejected) {
-  return this._promise.then(onFulfilled, onRejected);
-};
-
-/**
- * @param {function(*)} onRejected
- * @returns {Promise}
- */
-u.async.Deferred.prototype.catch = function(onRejected) {
-  return this._promise.catch(onRejected);
-};
-
-
-goog.provide('u.Geolocation');
-
-/**
- * @param {number} lat
- * @param {number} lng
- * @param {number} [accuracy=0] The accuracy level of the latitude and longitude coordinates. It is specified in units and
- *   must be supported by all implementations. The value of the accuracy attribute must be a non-negative real number.
- * @param {u.Geolocation.Unit} [unit]
- * @param {number} [zoom] Google Maps zoom level
- * @param {number} [range] Radius in units around center; not to be confused with accuracy!
- * @param {number} [alt] In units. The height of the position, specified in units above the [WGS84] ellipsoid. If the
- *   implementation cannot provide altitude information, the value of this attribute must be null.
- * @param {number} [altAccuracy] In units. If the implementation cannot provide altitude information, the value of this
- *   attribute must be null. Otherwise, the value of the altitudeAccuracy attribute must be a non-negative real number.
- * @param {number} [heading] The direction of travel of the hosting device and is specified in degrees,
- *   where 0� ? heading < 360�, counting clockwise relative to the true north. If the implementation cannot provide
- *   heading information, the value of this attribute must be null. If the hosting device is stationary (i.e. the value
- *   of the speed attribute is 0), then the value of the heading attribute must be NaN.
- * @param {number} [speed] Denotes the magnitude of the horizontal component of the hosting device's current velocity
- *   and is specified in units per second. If the implementation cannot provide speed information, the value of this
- *   attribute must be null. Otherwise, the value of the speed attribute must be a non-negative real number.
- * @constructor
- */
-u.Geolocation = function (lat, lng, accuracy, unit, zoom, range, alt, altAccuracy, heading, speed) {
-  /**
-   * @type {number}
-   */
-  this['lat'] = lat;
-
-  /**
-   * @type {number}
-   */
-  this['lng'] = lng;
-
-  /**
-   * @type {number}
-   */
-  this['range'] = (range == undefined) ? null : range;
-
-  /**
-   * @type {number}
-   */
-  this['accuracy'] = accuracy || 0;
-
-  /**
-   * @type {number}
-   */
-  this['zoom'] = (zoom == undefined) ? null : zoom;
-
-  /**
-   * @type {u.Geolocation.Unit}
-   */
-  this['unit'] = unit || u.Geolocation.Unit['M'];
-
-  /**
-   * @type {number}
-   */
-  this['alt'] = (alt == undefined) ? null : alt;
-
-  /**
-   * @type {number}
-   */
-  this['altAccuracy'] = (altAccuracy == undefined) ? null : altAccuracy;
-
-  /**
-   * @type {number}
-   */
-  this['heading'] = (heading == undefined) ? null : heading;
-
-  /**
-   * @type {number}
-   */
-  this['speed'] = (speed == undefined) ? null : speed;
-};
-
-/**
- * @param {u.Geolocation} [other]
- * @returns {boolean}
- */
-u.Geolocation.prototype.equals = function(other) {
-  if (other == undefined) { return false; }
-  var g = (other instanceof u.Geolocation) ? other : new u.Geolocation(other['lat'], other['lng'], other['accuracy'], other['unit'], other['zoom'], other['range'], other['alt'], other['altAccuracy'], other['heading'], other['speed']);
-
-  var converted = u.Geolocation.convert(g, this['unit']);
-  return this['lat'] == converted['lat'] && this['lng'] == converted['lng'] && this['zoom'] == converted['zoom'] &&
-    this['range'] == converted['range'] && this['accuracy'] == converted['accuracy'] && this['alt'] == converted['alt'] &&
-    this['altAccuracy'] == converted['altAccuracy'] && this['heading'] == converted['heading'] && this['speed'] == converted['speed'];
-};
-
-/**
- * @returns {u.Geolocation}
- */
-u.Geolocation.prototype.copy = function() {
-  return new u.Geolocation(this['lat'], this['lng'], this['accuracy'], this['unit'], this['zoom'],
-    this['range'], this['alt'], this['altAccuracy'], this['heading'], this['speed']);
-};
-
-
-/**
- * @license MIT License http://www.movable-type.co.uk/scripts/latlong.html
- */
-/**
- * Returns the distance from ‘this’ point to destination point (using haversine formula).
- *
- * @param   {u.Geolocation|{lat: number, lng: number}} point - Latitude/longitude of destination point.
- * @param   {number} [radius=6371e3] - (Mean) radius of earth (defaults to radius in metres).
- * @returns {number} Distance between this point and destination point, in same units as radius (meters by default).
- *
- * @example
- *     var p1 = new LatLon(52.205, 0.119);
- *     var p2 = new LatLon(48.857, 2.351);
- *     var d = p1.distanceTo(p2); // 404.3 km
- */
-u.Geolocation.prototype.distanceTo = function(point, radius) {
-  radius = (radius === undefined) ? 6371010 : Number(radius);
-
-  var R = radius;
-  var phi1 = u.math.deg2rad(this['lat']),  lambda1 = u.math.deg2rad(this['lng']);
-  var phi2 = u.math.deg2rad(point['lat']), lambda2 = u.math.deg2rad(point['lng']);
-  var dphi = phi2 - phi1;
-  var dlambda = lambda2 - lambda1;
-
-  var a = Math.sin(dphi/2) * Math.sin(dphi/2)
-    + Math.cos(phi1) * Math.cos(phi2)
-    * Math.sin(dlambda/2) * Math.sin(dlambda/2);
-  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-};
-
-/**
- * FIXME: Untested
- * Returns the destination point from ‘this’ point having travelled the given distance on the
- * given initial bearing (bearing normally varies around path followed).
- *
- * @param   {number} distance - Distance travelled, in same units as earth radius (default: metres).
- * @param   {number} bearing - Initial bearing in degrees from north.
- * @param   {number} [radius=6371e3] - (Mean) radius of earth (defaults to radius in metres).
- * @returns {u.Geolocation} Destination point.
- *
- * @example
- *     var p1 = new LatLon(51.4778, -0.0015);
- *     var p2 = p1.destinationPoint(7794, 300.7); // 51.5135°N, 000.0983°W
- */
-u.Geolocation.prototype.destinationPoint = function(distance, bearing, radius) {
-  radius = (radius === undefined) ? 6371010 : Number(radius);
-
-  // see http://williams.best.vwh.net/avform.htm#LL
-
-  var delta = Number(distance) / radius; // angular distance in radians
-  var theta = u.math.deg2rad(Number(bearing));
-
-  var phi1 = u.math.deg2rad(this['lat']);
-  var lambda1 = u.math.deg2rad(this['lng']);
-
-  var phi2 = Math.asin(Math.sin(phi1)*Math.cos(delta) + Math.cos(phi1)*Math.sin(delta)*Math.cos(theta));
-  var x = Math.cos(delta) - Math.sin(phi1) * Math.sin(phi2);
-  var y = Math.sin(theta) * Math.sin(delta) * Math.cos(phi1);
-  var lambda2 = lambda1 + Math.atan2(y, x);
-
-  return new u.Geolocation(u.math.rad2deg(phi2), (u.math.rad2deg(lambda2)+540)%360-180, 0); // normalize to −180..+180°
-};
-
-/**
- * FIXME: Untested
- * @param {number} dist
- * @param {u.Geolocation.Unit} [unit]
- * @returns {{sw: u.Geolocation, ne:u.Geolocation}}
- */
-u.Geolocation.prototype.boundingBox = function(dist, unit) {
-  var MIN_LAT = -Math.PI / 2;
-  var MAX_LAT = Math.PI / 2;
-  var MIN_LNG = -Math.PI;
-  var MAX_LNG = Math.PI;
-
-  // Calculate the radius of the earth (spherical)
-  var radius2 = u.Geolocation.getEarthRadiusWGS84(this['lat'], unit);
-
-  // Angular dist in radians on a great circle
-  var angular = dist / radius2;
-
-  // Latitude and longitude in radians
-  var radLat = u.math.deg2rad(this['lat']);
-  var radLng = u.math.deg2rad(this['lng']);
-
-  // Initial min and max
-  var sLat = radLat - angular;
-  var nLat = radLat + angular;
-  var wLng = 0;
-  var eLng = 0;
-
-  if (sLat > MIN_LAT && nLat < MAX_LAT) {
-    var deltaLng = Math.asin(Math.sin(angular) / Math.cos(radLat));
-
-    wLng = radLng - deltaLng;
-    if (wLng < MIN_LNG) { wLng += 2 * Math.PI; }
-
-    eLng = radLng + deltaLng;
-    if (eLng > MAX_LNG) { eLng -= 2 * Math.PI; }
-  } else {
-    // A pole is within the dist
-    sLat = Math.max(sLat, MIN_LAT);
-    nLat = Math.min(nLat, MAX_LAT);
-    wLng = MIN_LNG;
-    eLng = MAX_LNG;
-  }
-
-  return {
-    'sw': new u.Geolocation(u.math.rad2deg(sLat), u.math.rad2deg(wLng), 0),
-    'ne': new u.Geolocation(u.math.rad2deg(nLat), u.math.rad2deg(eLng), 0)
-  };
-};
-
-/**
- * FIXME: Untested
- * Earth radius at a given lat, according to the WGS-84 ellipsoid figure
- * @param {number} lat The lat of the coordinate.
- * @param {u.Geolocation.Unit} [unit]
- */
-u.Geolocation.getEarthRadiusWGS84 = function(lat, unit) {
-  // http://en.wikipedia.org/wiki/Earth_radius
-
-  var WGS84_a = 6378137.0; // Major semiaxis [m]
-  var WGS84_b = 6356752.314245; // Minor semiaxis [m]
-  var WGS84_f = 1 / 298.257223563; // Flattening [m]
-
-  var An = WGS84_a * WGS84_a * Math.cos(lat);
-  var Bn = WGS84_b * WGS84_b * Math.sin(lat);
-  var Ad = WGS84_a * Math.cos(lat);
-  var Bd = WGS84_b * Math.sin(lat);
-
-  var result = Math.sqrt((An * An + Bn * Bn) / (Ad * Ad + Bd * Bd));
-
-  unit = (unit == undefined) ? u.Geolocation.Unit['M'] : unit;
-  return u.Geolocation.convertUnits(result, u.Geolocation.Unit['M'], unit);
-};
-
-/**
- * FIXME: Untested
- * @param {u.Geolocation} location
- * @param {u.Geolocation.Unit} unit
- * @returns {u.Geolocation}
- */
-u.Geolocation.convert = function(location, unit) {
-  if (location['unit'] == unit) { return location; }
-
-  var ratio = u.Geolocation.CONVERSION_TABLE[location['unit']][unit];
-
-  return new u.Geolocation(
-    location['lat'],
-    location['lng'],
-    location['accuracy'] * ratio,
-    unit,
-    location['zoom'],
-    location['range'] == null ? location['range'] : location['range'] * ratio,
-    location['alt'] == null ? location['alt'] : location['alt'] * ratio,
-    location['altAccuracy'] == null ? location['altAccuracy'] : location['altAccuracy'] * ratio,
-    location['heading'],
-    location['speed'] == null ? location['speed'] : location['speed'] * ratio);
-};
-
-/**
- * FIXME: Untested
- * @param {number} units
- * @param {u.Geolocation.Unit} fromUnit
- * @param {u.Geolocation.Unit} toUnit
- * @returns {number}
- */
-u.Geolocation.convertUnits = function(units, fromUnit, toUnit) {
-  if (fromUnit == toUnit) { return units; }
-  var ratio = u.Geolocation.CONVERSION_TABLE[fromUnit][toUnit];
-  return units * ratio;
-};
-
-/**
- * FIXME: Untested
- * @param {number} pixels
- * @param {number} lat
- * @param {number} zoom
- * @param {u.Geolocation.Unit} [unit]
- * @returns {number}
- */
-u.Geolocation.googleMapPixels2Distance = function(pixels, lat, zoom, unit) {
-  var meters = pixels * (Math.cos(lat * Math.PI / 180) * 2 * Math.PI * 6378137) / (256 * (2 << zoom));
-  if (unit == undefined) { return meters; }
-  return u.Geolocation.convertUnits(meters, u.Geolocation.Unit['M'], unit);
-};
-
-/**
- * FIXME: Untested
- * @param {number} meters
- * @param {number} pixels
- * @param {number} lat
- * @returns {number}
- */
-u.Geolocation.googleMapMetersPixels2Zoom = function(meters, pixels, lat) {
-  // log2 exists in es6 but not earlier versions;
-  var log2 = Math['log2'] || function (x) {
-      x = Number(x);
-      return Math.log(x) * Math.LOG2E;
-    };
-  return Math.floor(log2(pixels * (Math.cos(lat * Math.PI / 180) * 2 * Math.PI * 6378137)) - log2(meters) - 9);
-};
-
-
-/** @const {number} */
-u.Geolocation.M2KM = 0.001;
-
-/** @const {number} */
-u.Geolocation.KM2M = 1000.0;
-
-/** @const {number} */
-u.Geolocation.M2MI = 0.000621371192237334;
-
-/** @const {number} */
-u.Geolocation.MI2M = 1609.3439999999999;
-
-/** @const {number} */
-u.Geolocation.M2FT = 3.28084;
-
-/** @const {number} */
-u.Geolocation.FT2M = 0.3048;
-
-/** @const {number} */
-u.Geolocation.KM2MI = u.Geolocation.KM2M * u.Geolocation.M2MI;
-
-/** @const {number} */
-u.Geolocation.MI2KM = u.Geolocation.MI2M * u.Geolocation.M2KM;
-
-/** @const {number} */
-u.Geolocation.KM2FT = u.Geolocation.KM2M * u.Geolocation.M2FT;
-
-/** @const {number} */
-u.Geolocation.FT2KM = u.Geolocation.FT2M * u.Geolocation.M2KM;
-
-/** @const {number} */
-u.Geolocation.MI2FT = 5280;
-
-/** @const {number} */
-u.Geolocation.FT2MI = 0.000189394;
-
-/**
- * @const {Object.<u.Geolocation.Unit, Object.<u.Geolocation.Unit, number>>}
- */
-u.Geolocation.CONVERSION_TABLE = {
-  '2': {
-    '2': 1,
-    '1': u.Geolocation.M2KM,
-    '0': u.Geolocation.M2MI,
-    '3': u.Geolocation.M2FT
-  },
-  '1': {
-    '2': u.Geolocation.KM2M,
-    '1': 1,
-    '0': u.Geolocation.KM2MI,
-    '3': u.Geolocation.KM2FT
-  },
-  '0': {
-    '2': u.Geolocation.MI2M,
-    '1': u.Geolocation.MI2KM,
-    '0': 1,
-    '3': u.Geolocation.MI2FT
-  },
-  '3': {
-    '2': u.Geolocation.FT2M,
-    '1': u.Geolocation.FT2KM,
-    '0': u.Geolocation.FT2MI,
-    '3': 1
-  }
-};
-
-/**
- * @const {Object.<u.Geolocation.UnitName, Object.<u.Geolocation.UnitName, number>>}
- */
-u.Geolocation.CONVERSION_TABLE_S = {
-  'm': {
-    'm': 1,
-    'km': u.Geolocation.M2KM,
-    'mi': u.Geolocation.M2MI,
-    'ft': u.Geolocation.M2FT
-  },
-  'km': {
-    'm': u.Geolocation.KM2M,
-    'km': 1,
-    'mi': u.Geolocation.KM2MI,
-    'ft': u.Geolocation.KM2FT
-  },
-  'mi': {
-    'm': u.Geolocation.MI2M,
-    'km': u.Geolocation.MI2KM,
-    'mi': 1,
-    'ft': u.Geolocation.MI2FT
-  },
-  'ft': {
-    'm': u.Geolocation.FT2M,
-    'km': u.Geolocation.FT2KM,
-    'mi': u.Geolocation.FT2MI,
-    'ft': 1
-  }
-};
-
-/**
- * @enum {number}
- */
-u.Geolocation.Unit = {
-  'MI': 0,
-  'KM': 1,
-  'M': 2,
-  'FT': 3
-};
-
-/**
- * @enum {string}
- */
-u.Geolocation.UnitName = {
-  '0': 'mi',
-  '1': 'km',
-  '2': 'm',
-  '3': 'ft'
-};
-
-/**
- * @enum {string}
- */
-u.Geolocation.UnitLongNameSg = {
-  '0': 'mile',
-  '1': 'kilometer',
-  '2': 'meter',
-  '3': 'foot'
-};
-
-/**
- * @enum {string}
- */
-u.Geolocation.UnitLongNamePl = {
-  '0': 'miles',
-  '1': 'kilometers',
-  '2': 'meters',
-  '3': 'feet'
-};
-
-
-goog.provide('u.UnimplementedException');
-
-goog.require('u.Exception');
-
-/**
- * @param {string} message
- * @param {Error} [innerException]
- * @constructor
- * @extends u.Exception
- */
-u.UnimplementedException = function(message, innerException) {
-  u.Exception.apply(this, arguments);
-
-  /**
-   * @type {string}
-   */
-  this.name = 'UnimplementedException';
-};
-
-goog.inherits(u.UnimplementedException, u.Exception);
-
-
 goog.provide('u.EventListener');
 
 /**
@@ -1077,88 +198,39 @@ u.Event.prototype.fire = function(args) {
 };
 
 
-goog.provide('u.fast');
+goog.provide('u.log');
 
 /**
- * @param {Array} arr
- * @param {function(*, (number|undefined)): *} callback
- * @returns {!Array}
+ * @param {...} args
  */
-u.fast.map = function(arr, callback) {
-  var length = arr.length;
-  var ret = new Array(length);
-  for (var i = 0; i < length; ++i) {
-    ret[i] = callback(arr[i], i);
-  }
-  return ret;
+u.log.info = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (verbose != 'info') { return; }
+
+  var logger = u.log['LOGGER'] || console;
+  logger.info.apply(logger, arguments);
 };
 
 /**
- * @param {Array.<Array>} arrays
- * @returns {!Array}
+ * @param {...} args
  */
-u.fast.concat = function(arrays) {
-  if (arrays.length == 1) { return /** @type {!Array} */ (arrays[0]); }
-  if (arrays.length == 2) {
-    return arrays[0].concat(arrays[1]);
-  }
+u.log.warn = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (['warn', 'info'].indexOf(verbose) < 0) { return; }
 
-  var length = arrays.length;
-  var totalLength = 0;
-  var i;
-  for (i = 0; i < length; ++i) {
-    totalLength += arrays[i].length;
-  }
-  var ret = new Array(totalLength);
-  var j = 0, k = 0, l, a;
-
-  for (i = 0; i < length; ++i) {
-    a = arrays[i];
-    l = a.length;
-    for (j = 0; j < l; ++j, ++k) {
-      ret[k] = a[j];
-    }
-  }
-  return ret;
+  var logger = u.log['LOGGER'] || console;
+  logger.warn.apply(logger, arguments);
 };
 
 /**
- * @param {Array} arr
- * @param {function(*, (number|undefined)): boolean} predicate
- * @returns {!Array}
+ * @param {...} args
  */
-u.fast.filter = function(arr, predicate) {
-  var length = arr.length;
-  var ret = [];
-  for (var i = 0; i < length; ++i) {
-    var item = arr[i];
-    if (predicate(item, i)) { ret.push(item); }
-  }
-  return ret;
-};
+u.log.error = function(args) {
+  var verbose = u.log['VERBOSE'];
+  if (['error', 'warn', 'info'].indexOf(verbose) < 0) { return; }
 
-/**
- * @param {Array} arr
- * @param {function((*|undefined), (number|undefined), (Array|undefined))} callback
- * @param {*} [thisArg]
- */
-u.fast.forEach = function(arr, callback, thisArg) {
-  var length = arr.length;
-  for (var i = 0; i < length; ++i) {
-    callback.call(thisArg, arr[i], i, arr);
-  }
-};
-
-
-goog.provide('u.string');
-
-/**
- * @param {string} text
- * @returns {string}
- */
-u.string.capitalizeFirstLetter = function (text) {
-  if (!text) { return text; }
-  return text.charAt(0).toUpperCase() + text.slice(1);
+  var logger = u.log['LOGGER'] || console;
+  logger.error.apply(logger, arguments);
 };
 
 
@@ -1668,191 +740,649 @@ u.darken = function (hex, pc) {
 };
 
 
-goog.provide('u.Promise');
+goog.provide('u.array');
 
-(function(window) {
-  if ('Promise' in window) { return; }
+/**
+ * @param {Arguments|Array} args
+ * @returns {Array}
+ */
+u.array.fromArguments = function(args) {
+  return /** @type {Array} */ (Array.isArray(args) ? args : [].slice.apply(args));
+};
+
+/**
+ * Creates an array of length n filled with value
+ * @param {number} n
+ * @param {*} value
+ * @returns {Array}
+ */
+u.array.fill = function(n, value) {
+  n = n || 0;
+  var ret = new Array(n);
+  for (var i = 0; i < n; ++i) { ret[i] = value; }
+  return ret;
+};
+
+/**
+ * Generates an array of consecutive numbers starting from start, or 0 if it's not defined
+ * @param {number} n
+ * @param {number} [start]
+ * @returns {Array.<number>}
+ */
+u.array.range = function(n, start) {
+  start = start || 0;
+  n = n || 0;
+
+  var result = new Array(n);
+  for (var i = 0; i < n; ++i) {
+    result[i] = i + start;
+  }
+
+  return result;
+};
+
+/**
+ * Returns a new array where all elements are unique
+ * Complexity is suboptimal: O(n^2); for strings and numbers,
+ * it can be done faster, using a map
+ * @param {Array} arr
+ * @param {function(*,*): boolean} [equals]
+ * @returns {Array}
+ */
+u.array.unique = function(arr, equals) {
+  return arr.reduce(function(result, item) {
+    if (!equals) {
+      if (result.indexOf(item) < 0) { result.push(item); }
+    } else {
+      if (u.array.indexOf(result, function(it) { return equals(it, item); }) < 0) { result.push(item); }
+    }
+    return result;
+  }, []);
+};
+
+/**
+ * @param {Array.<string|number>} arr
+ * @returns {Array.<string|number>}
+ */
+u.array.uniqueFast = function(arr) {
+  var ret = [];
+  var isSet = {};
+  var length = arr.length;
+  var item;
+  for (var i = 0; i < length; ++i) {
+    item = arr[i];
+    if (!isSet[item]) {
+      ret.push(item);
+      isSet[item] = true;
+    }
+  }
+
+  return ret;
+};
+
+/**
+ * @param {Array} arr
+ * @param {function(*, (number|undefined)): (string|number)} key
+ * @returns {Array}
+ */
+u.array.uniqueKey = function(arr, key) {
+  var ret = [];
+  var isSet = {};
+  var length = arr.length;
+  var item, k;
+  for (var i = 0; i < length; ++i) {
+    item = arr[i];
+    k = key(item, i);
+    if (!isSet[k]) {
+      ret.push(item);
+      isSet[k] = true;
+    }
+  }
+
+  return ret;
+};
+
+/**
+ * @param {Array} arr
+ * @param {function(*, number):boolean} predicate
+ * @param {*} [thisArg]
+ * @returns {number}
+ */
+u.array.indexOf = function(arr, predicate, thisArg) {
+  for (var i = 0; i < arr.length; ++i) {
+    if (predicate.call(thisArg, arr[i], i)) {
+      return i;
+    }
+  }
+  return -1;
+};
+
+
+goog.provide('u.TimeSpan');
+
+goog.require('u');
+
+/**
+ * @param {number} milliseconds Must be positive
+ * @constructor
+ */
+u.TimeSpan = function(milliseconds) {
+  if (milliseconds < 0) { milliseconds = 0; }
 
   /**
-   * @param {function(function(*), function(*))} resolver
-   * @constructor
+   * @type {number}
+   * @private
    */
-  var PromisePolyfill = function(resolver) {
-    if (typeof resolver != 'function') {
-      throw new TypeError('Promise resolver ' + resolver + ' is not a function');
-    }
-
-    /**
-     * @type {Array.<Function>}
-     * @private
-     */
-    this._fulfilledCallbacks = [];
-
-    /**
-     * @type {Array.<Function>}
-     * @private
-     */
-    this._rejectedCallbacks = [];
-
-    /**
-     * @type {boolean}
-     * @private
-     */
-    this._resolved = false;
-
-    /**
-     * @type {boolean}
-     * @private
-     */
-    this._rejected = false;
-
-    /**
-     * @type {*}
-     * @private
-     */
-    this._resolvedVal = undefined;
-
-    /**
-     * @type {*}
-     * @private
-     */
-    this._rejectedReason = undefined;
-
-    var self = this;
-    try {
-      resolver(
-        // Resolve
-        function (value) {
-          self._resolved = true;
-          self._resolvedVal = value;
-          self._callAllFulfilled(value);
-        },
-        // Reject
-        function (reason) {
-          self._rejected = true;
-          self._rejectedReason = reason;
-          self._callAllRejected(reason);
-        });
-    } catch (err) {
-      self._callAllRejected(err);
-    }
-  };
+  this._totalMilliseconds = milliseconds;
 
   /**
-   * @param {function(*)} [onFulfilled]
-   * @param {function(*)} [onRejected]
-   * @returns {PromisePolyfill}
+   * @type {?number}
+   * @private
    */
-  PromisePolyfill.prototype['then'] = function (onFulfilled, onRejected) {
-    var resolve, reject;
-    var ret = new PromisePolyfill(function() { resolve = arguments[0]; reject = arguments[1]; });
-    var fulfilledWrapper, rejectedWrapper;
-    if (typeof onFulfilled == 'function') {
-      fulfilledWrapper = function(value) {
-        try {
-          var next = onFulfilled.call(null, value);
-          if (next instanceof PromisePolyfill) {
-            next['then'](resolve, reject);
-          } else {
-            resolve(next);
-          }
-        } catch (err) {
-          reject(err);
-        }
+  this._totalDays = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._totalHours = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._totalMinutes = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._totalSeconds = null;
+
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._days = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._hours = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._minutes = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._seconds = null;
+
+  /**
+   * @type {?number}
+   * @private
+   */
+  this._milliseconds = null;
+};
+
+/**
+ * @constant {number}
+ */
+u.TimeSpan.MS_IN_SECOND = 1000;
+
+/**
+ * @constant {number}
+ */
+u.TimeSpan.MS_IN_MINUTE = 60 * u.TimeSpan.MS_IN_SECOND;
+
+/**
+ * @constant {number}
+ */
+u.TimeSpan.MS_IN_HOUR = 60 * u.TimeSpan.MS_IN_MINUTE;
+
+/**
+ * @constant {number}
+ */
+u.TimeSpan.MS_IN_DAY = 24 * u.TimeSpan.MS_IN_HOUR;
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.days = function() {
+  if (this._days == null) { this._days = Math.floor(this.totalDays()); }
+  return this._days;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.hours = function() {
+  if (this._hours == null) {
+    this._hours = Math.floor((this.totalDays() - this.days()) * 24);
+  }
+  return this._hours;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.minutes = function() {
+  if (this._minutes == null) {
+    this._minutes = Math.floor((this.totalHours() - Math.floor(this.totalHours())) * 60);
+  }
+  return this._minutes;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.seconds = function() {
+  if (this._seconds == null) {
+    this._seconds = Math.floor((this.totalMinutes() - Math.floor(this.totalMinutes())) * 60);
+  }
+  return this._seconds;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.milliseconds = function() {
+  if (this._milliseconds == null) {
+    this._milliseconds = this._totalMilliseconds % 1000;
+  }
+  return this._milliseconds;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.totalDays = function() {
+  if (this._totalDays == null) {
+    this._totalDays = this._totalMilliseconds / u.TimeSpan.MS_IN_DAY;
+  }
+  return this._totalDays;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.totalHours = function() {
+  if (this._totalHours == null) {
+    this._totalHours = this._totalMilliseconds / u.TimeSpan.MS_IN_HOUR;
+  }
+  return this._totalHours;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.totalMinutes = function() {
+  if (this._totalMinutes == null) {
+    this._totalMinutes = this._totalMilliseconds / u.TimeSpan.MS_IN_MINUTE;
+  }
+  return this._totalMinutes;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.totalSeconds = function() {
+  if (this._totalSeconds == null) {
+    this._totalSeconds = this._totalMilliseconds / u.TimeSpan.MS_IN_SECOND;
+  }
+  return this._totalSeconds;
+};
+
+/**
+ * @returns {number}
+ */
+u.TimeSpan.prototype.totalMilliseconds = function() { return this._totalMilliseconds; };
+
+/**
+ * TODO: Add a formatting parameter
+ * @override
+ * @returns {string}
+ */
+u.TimeSpan.prototype.toString = function() {
+  var ret = '';
+  if (this.days() > 0) {
+    if (this.days() > 1) { ret += this.days() + ' days'; }
+    else { ret += 'one day'}
+  }
+
+  if (this.hours() > 0) {
+    if (ret) { ret += ', '; }
+    if (this.hours() > 1) { ret += this.hours() + ' hours'; }
+    else { ret += 'one hour'; }
+  }
+
+  if (this.minutes() > 0) {
+    if (ret) { ret += ' and '; }
+    if (this.minutes() > 1) { ret += this.minutes() + ' minutes'; }
+    else { ret += 'one minute'; }
+  } else if (!ret) {
+    ret += 'less than a minute';
+  }
+
+  return u.string.capitalizeFirstLetter(ret);
+};
+
+
+
+goog.provide('u.string');
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+u.string.capitalizeFirstLetter = function (text) {
+  if (!text) { return text; }
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+
+goog.provide('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends Error
+ */
+u.Exception = function(message, innerException) {
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._errorCore = new Error(message);
+
+  /**
+   * @type {Error}
+   * @private
+   */
+  this._innerException = innerException || null;
+
+  /**
+   * @type {string}
+   */
+  this.message = this._errorCore.message;
+
+  /**
+   * @type {string}
+   */
+  this.name = 'Exception';
+};
+
+goog.inherits(u.Exception, Error);
+
+Object.defineProperties(u.Exception.prototype, {
+  /**
+   * @property
+   * @type {string}
+   * @name u.Exception#stack
+   */
+  'stack': /** @type {string} */ ({
+    get: /** @type {function (this:u.Exception): string} */ (function() { return this._errorCore.stack; })
+  }),
+
+  /**
+   * @property
+   * @type {Error}
+   * @name u.Exception#innerException
+   */
+  'innerException': /** @type {Error} */ ({
+    get: /** @type {function (this:u.Exception): Error} */ (function() { return this._innerException; })
+  })
+});
+
+
+goog.provide('u.reflection');
+goog.require('u.array');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.reflection.ReflectionException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'ReflectionException';
+};
+
+goog.inherits(u.reflection.ReflectionException, u.Exception);
+
+
+/**
+ * Evaluates the given string into a constructor for a type
+ * @param {string} typeName
+ * @param {Object} [context]
+ * @returns {function(new: T)}
+ * @template T
+ */
+u.reflection.evaluateFullyQualifiedTypeName = function(typeName, context) {
+  var result;
+
+  try {
+    var namespaces = typeName.split('.');
+    var func = namespaces.pop();
+    var ctx = context || window;
+    for (var i = 0; i < namespaces.length; ++i) {
+      ctx = ctx[namespaces[i]];
+    }
+    result = ctx[func];
+  } catch (error) {
+    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName, error);
+  }
+
+  if (typeof(result) !== 'function') {
+    throw new u.reflection.ReflectionException('Unknown type name: ' + typeName);
+  }
+
+  return result;
+};
+
+/**
+ * Applies the given constructor to the given parameters and creates
+ * a new instance of the class it defines
+ * @param {function(new: T)} ctor
+ * @param {Array|Arguments} params
+ * @returns {T}
+ * @template T
+ */
+u.reflection.applyConstructor = function(ctor, params) {
+  return new (Function.prototype.bind.apply(ctor, [null].concat(u.array.fromArguments(params || []))));
+};
+
+/**
+ * Wraps given type around the given object, so the object's prototype matches the one of the type
+ * @param {Object} o
+ * @param {function(new: T)} type
+ * @returns {T}
+ * @template T
+ */
+u.reflection.wrap = function(o, type) {
+  //o.__proto__ = type.prototype;
+  //return o;
+
+  if (o instanceof type) { return o; }
+
+  var props = {};
+  for (var p in o) {
+    if (!o.hasOwnProperty(p)) { continue; }
+    (function(p) {
+      props[p] = {
+        get: function() { return o[p]; },
+        set: function(value) { o[p] = value; },
+        configurable: true,
+        enumerable: true
       };
-      this._fulfilledCallbacks.push(fulfilledWrapper);
-    }
-    if (typeof onRejected == 'function') {
-      rejectedWrapper = function(reason) {
-        try {
-          var next = onRejected.call(null, reason);
-          if (next instanceof PromisePolyfill) {
-            next['then'](resolve, reject);
-          } else {
-            resolve(next);
-          }
-        } catch (err) {
-          reject(err);
-        }
-      };
-      this._rejectedCallbacks.push(rejectedWrapper);
-    }
+    })(p);
+  }
 
-    var self = this;
-    if (this._resolved) {
-      setTimeout(function() { fulfilledWrapper.call(null, self._resolvedVal); }, 0);
-    } else if (this._rejected) {
-      setTimeout(function() { rejectedWrapper.call(null, self._rejectedReason); }, 0);
-    }
+  return Object.create(type.prototype, props);
+};
 
-    return ret;
-  };
 
-  /**
-   * @param {function(*)} [onRejected]
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill.prototype['catch'] = function(onRejected) { return this['then'](undefined, onRejected); };
+goog.provide('u.async');
+goog.require('u.array');
+goog.require('u.reflection');
 
-  /**
-   * @param {T} value
-   * @template T
-   */
-  PromisePolyfill.prototype._callAllFulfilled = function(value) {
-    this._fulfilledCallbacks.forEach(function(callback) {
-      setTimeout(function() {  callback.call(null, value); }, 0);
-    });
-    this._fulfilledCallbacks = [];
-  };
+/**
+ * @param {Array.<function(): Promise>} jobs
+ * @param {boolean} [inOrder] If true, the jobs are executed in order, otherwise, in parallel
+ * @returns {Promise}
+ */
+u.async.all = function(jobs, inOrder) {
+  if (inOrder) {  return u.async.each(jobs, function(job) { return job(); }, inOrder); }
+  return Promise.all(jobs.map(function(job) { return job(); }));
+};
 
-  /**
-   * @param {*} reason
-   */
-  PromisePolyfill.prototype._callAllRejected = function(reason) {
-    this._rejectedCallbacks.forEach(function(callback) {
-      setTimeout(function() {  callback.call(null, reason); }, 0);
-    });
-    this._rejectedCallbacks = [];
-  };
+/**
+ * @param {number} n
+ * @param {function(number, (number|undefined)): Promise} iteration
+ * @param {boolean} [inOrder]
+ * @returns {Promise}
+ */
+u.async.for = function(n, iteration, inOrder) {
+  return u.async.each(u.array.range(n), iteration, inOrder);
+};
 
-  /**
-   * @param {*} [value]
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill['resolve'] = function(value) { return new PromisePolyfill(function(resolve) { resolve(value); }); };
-
-  /**
-   * @param {*} [reason]
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill['reject'] = function(reason) { return new PromisePolyfill(function(resolve, reject) { reject(reason); }); };
-
-  /**
-   * @param {Array} promises
-   * @returns {PromisePolyfill}
-   */
-  PromisePolyfill['all'] = function(promises) {
-    if (!promises || !promises.length) { return PromisePolyfill['resolve'](); }
-    return new PromisePolyfill(function(resolve, reject) {
-      var ret = new Array(promises.length);
-      var remaining = promises.length;
-      promises.forEach(function(promise, i) {
-        var p = (promise instanceof PromisePolyfill) ? promise : PromisePolyfill['resolve'](promise);
-        p['then'](
-          function(value) {
-            ret[i] = value;
-            --remaining;
-            if (!remaining) { resolve(ret); }
-          },
-          function(reason) {
-            reject(reason);
-          });
+/**
+ * @param {function(number): Promise} iteration
+ * @returns {Promise}
+ */
+u.async.do = function(iteration) {
+  return new Promise(function(resolve, reject) {
+    var i = 0;
+    var it = function() {
+      return iteration(i++).then(function(condition) {
+        return !condition || it();
       });
-    });
-  };
+    };
+    it().then(resolve);
+  });
+};
 
-  window['Promise'] = PromisePolyfill;
-})(this);
+/**
+ * @param {Array.<T>} items
+ * @param {function(T, number): Promise} iteration
+ * @param {boolean} [inOrder]
+ * @returns {Promise}
+ * @template T
+ */
+u.async.each = function(items, iteration, inOrder) {
+  if (inOrder) {
+    return new Promise(function(resolve, reject) {
+      if (!items || !items.length) {
+        resolve();
+      }
+
+      var d, remaining;
+      d = new Array(items.length+1);
+      d[0] = new Promise(function(resolve) { resolve(); });
+
+      items.forEach(function(item, i) {
+        d[i + 1] = d[i].then(function() { return iteration.call(null, item, i); });
+      });
+
+      d[items.length].then(resolve);
+    });
+  } else {
+    return Promise.all(items.map(function(item, i) { return iteration(item, i); }));
+  }
+};
+
+/**
+ * @constructor
+ * @template T
+ */
+u.async.Deferred = function() {
+  /**
+   * @type {Function}
+   * @private
+   */
+  this._resolve = null;
+
+  /**
+   * @type {Function}
+   * @private
+   */
+  this._reject = null;
+
+  var self = this;
+
+  /**
+   * @type {Promise}
+   * @private
+   */
+  this._promise = new Promise(function() { self._resolve = arguments[0]; self._reject = arguments[1]; });
+};
+
+/**
+ * @param {T} [value]
+ */
+u.async.Deferred.prototype.resolve = function(value) {
+  this._resolve.call(this._promise, value);
+};
+
+/**
+ * @param {*} [reason]
+ */
+u.async.Deferred.prototype.reject = function(reason) {
+  this._reject.call(this._promise, reason);
+};
+
+/**
+ * @param {function((T|undefined))} [onFulfilled]
+ * @param {function(*)} [onRejected]
+ * @returns {Promise}
+ */
+u.async.Deferred.prototype.then = function(onFulfilled, onRejected) {
+  return this._promise.then(onFulfilled, onRejected);
+};
+
+/**
+ * @param {function(*)} onRejected
+ * @returns {Promise}
+ */
+u.async.Deferred.prototype.catch = function(onRejected) {
+  return this._promise.catch(onRejected);
+};
+
+
+goog.provide('u.UnimplementedException');
+
+goog.require('u.Exception');
+
+/**
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.UnimplementedException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'UnimplementedException';
+};
+
+goog.inherits(u.UnimplementedException, u.Exception);
 
 
 goog.provide('u.QuadTree');
@@ -2367,6 +1897,266 @@ u.QuadTree.Item = function(x, y, w, h, value) {
 };
 
 
+goog.provide('u.fast');
+
+/**
+ * @param {Array} arr
+ * @param {function(*, (number|undefined)): *} callback
+ * @returns {!Array}
+ */
+u.fast.map = function(arr, callback) {
+  var length = arr.length;
+  var ret = new Array(length);
+  for (var i = 0; i < length; ++i) {
+    ret[i] = callback(arr[i], i);
+  }
+  return ret;
+};
+
+/**
+ * @param {Array.<Array>} arrays
+ * @returns {!Array}
+ */
+u.fast.concat = function(arrays) {
+  if (arrays.length == 1) { return /** @type {!Array} */ (arrays[0]); }
+  if (arrays.length == 2) {
+    return arrays[0].concat(arrays[1]);
+  }
+
+  var length = arrays.length;
+  var totalLength = 0;
+  var i;
+  for (i = 0; i < length; ++i) {
+    totalLength += arrays[i].length;
+  }
+  var ret = new Array(totalLength);
+  var j = 0, k = 0, l, a;
+
+  for (i = 0; i < length; ++i) {
+    a = arrays[i];
+    l = a.length;
+    for (j = 0; j < l; ++j, ++k) {
+      ret[k] = a[j];
+    }
+  }
+  return ret;
+};
+
+/**
+ * @param {Array} arr
+ * @param {function(*, (number|undefined)): boolean} predicate
+ * @returns {!Array}
+ */
+u.fast.filter = function(arr, predicate) {
+  var length = arr.length;
+  var ret = [];
+  for (var i = 0; i < length; ++i) {
+    var item = arr[i];
+    if (predicate(item, i)) { ret.push(item); }
+  }
+  return ret;
+};
+
+/**
+ * @param {Array} arr
+ * @param {function((*|undefined), (number|undefined), (Array|undefined))} callback
+ * @param {*} [thisArg]
+ */
+u.fast.forEach = function(arr, callback, thisArg) {
+  var length = arr.length;
+  for (var i = 0; i < length; ++i) {
+    callback.call(thisArg, arr[i], i, arr);
+  }
+};
+
+
+goog.provide('u.Promise');
+
+(function(window) {
+  if ('Promise' in window) { return; }
+
+  /**
+   * @param {function(function(*), function(*))} resolver
+   * @constructor
+   */
+  var PromisePolyfill = function(resolver) {
+    if (typeof resolver != 'function') {
+      throw new TypeError('Promise resolver ' + resolver + ' is not a function');
+    }
+
+    /**
+     * @type {Array.<Function>}
+     * @private
+     */
+    this._fulfilledCallbacks = [];
+
+    /**
+     * @type {Array.<Function>}
+     * @private
+     */
+    this._rejectedCallbacks = [];
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this._resolved = false;
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this._rejected = false;
+
+    /**
+     * @type {*}
+     * @private
+     */
+    this._resolvedVal = undefined;
+
+    /**
+     * @type {*}
+     * @private
+     */
+    this._rejectedReason = undefined;
+
+    var self = this;
+    try {
+      resolver(
+        // Resolve
+        function (value) {
+          self._resolved = true;
+          self._resolvedVal = value;
+          self._callAllFulfilled(value);
+        },
+        // Reject
+        function (reason) {
+          self._rejected = true;
+          self._rejectedReason = reason;
+          self._callAllRejected(reason);
+        });
+    } catch (err) {
+      self._callAllRejected(err);
+    }
+  };
+
+  /**
+   * @param {function(*)} [onFulfilled]
+   * @param {function(*)} [onRejected]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill.prototype['then'] = function (onFulfilled, onRejected) {
+    var resolve, reject;
+    var ret = new PromisePolyfill(function() { resolve = arguments[0]; reject = arguments[1]; });
+    var fulfilledWrapper, rejectedWrapper;
+    if (typeof onFulfilled == 'function') {
+      fulfilledWrapper = function(value) {
+        try {
+          var next = onFulfilled.call(null, value);
+          if (next instanceof PromisePolyfill) {
+            next['then'](resolve, reject);
+          } else {
+            resolve(next);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+      this._fulfilledCallbacks.push(fulfilledWrapper);
+    }
+    if (typeof onRejected == 'function') {
+      rejectedWrapper = function(reason) {
+        try {
+          var next = onRejected.call(null, reason);
+          if (next instanceof PromisePolyfill) {
+            next['then'](resolve, reject);
+          } else {
+            resolve(next);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+      this._rejectedCallbacks.push(rejectedWrapper);
+    }
+
+    var self = this;
+    if (this._resolved) {
+      setTimeout(function() { fulfilledWrapper.call(null, self._resolvedVal); }, 0);
+    } else if (this._rejected) {
+      setTimeout(function() { rejectedWrapper.call(null, self._rejectedReason); }, 0);
+    }
+
+    return ret;
+  };
+
+  /**
+   * @param {function(*)} [onRejected]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill.prototype['catch'] = function(onRejected) { return this['then'](undefined, onRejected); };
+
+  /**
+   * @param {T} value
+   * @template T
+   */
+  PromisePolyfill.prototype._callAllFulfilled = function(value) {
+    this._fulfilledCallbacks.forEach(function(callback) {
+      setTimeout(function() {  callback.call(null, value); }, 0);
+    });
+    this._fulfilledCallbacks = [];
+  };
+
+  /**
+   * @param {*} reason
+   */
+  PromisePolyfill.prototype._callAllRejected = function(reason) {
+    this._rejectedCallbacks.forEach(function(callback) {
+      setTimeout(function() {  callback.call(null, reason); }, 0);
+    });
+    this._rejectedCallbacks = [];
+  };
+
+  /**
+   * @param {*} [value]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['resolve'] = function(value) { return new PromisePolyfill(function(resolve) { resolve(value); }); };
+
+  /**
+   * @param {*} [reason]
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['reject'] = function(reason) { return new PromisePolyfill(function(resolve, reject) { reject(reason); }); };
+
+  /**
+   * @param {Array} promises
+   * @returns {PromisePolyfill}
+   */
+  PromisePolyfill['all'] = function(promises) {
+    if (!promises || !promises.length) { return PromisePolyfill['resolve'](); }
+    return new PromisePolyfill(function(resolve, reject) {
+      var ret = new Array(promises.length);
+      var remaining = promises.length;
+      promises.forEach(function(promise, i) {
+        var p = (promise instanceof PromisePolyfill) ? promise : PromisePolyfill['resolve'](promise);
+        p['then'](
+          function(value) {
+            ret[i] = value;
+            --remaining;
+            if (!remaining) { resolve(ret); }
+          },
+          function(reason) {
+            reject(reason);
+          });
+      });
+    });
+  };
+
+  window['Promise'] = PromisePolyfill;
+})(this);
+
+
 goog.provide('u.math');
 
 /**
@@ -2406,254 +2196,487 @@ u.math.deg2rad = function(deg) { return deg * Math.PI / 180; };
 u.math.rad2deg = function(rad) { return rad * 180 / Math.PI; };
 
 
-goog.provide('u.TimeSpan');
+goog.provide('u.AbstractMethodException');
 
-goog.require('u');
+goog.require('u.Exception');
 
 /**
- * @param {number} milliseconds Must be positive
+ * @param {string} message
+ * @param {Error} [innerException]
+ * @constructor
+ * @extends u.Exception
+ */
+u.AbstractMethodException = function(message, innerException) {
+  u.Exception.apply(this, arguments);
+
+  /**
+   * @type {string}
+   */
+  this.name = 'AbstractMethodException';
+};
+
+goog.inherits(u.AbstractMethodException, u.Exception);
+
+
+goog.provide('u.Geolocation');
+
+/**
+ * @param {number} lat
+ * @param {number} lng
+ * @param {number} [accuracy=0] The accuracy level of the latitude and longitude coordinates. It is specified in units and
+ *   must be supported by all implementations. The value of the accuracy attribute must be a non-negative real number.
+ * @param {u.Geolocation.Unit} [unit]
+ * @param {number} [zoom] Google Maps zoom level
+ * @param {number} [range] Radius in units around center; not to be confused with accuracy!
+ * @param {number} [alt] In units. The height of the position, specified in units above the [WGS84] ellipsoid. If the
+ *   implementation cannot provide altitude information, the value of this attribute must be null.
+ * @param {number} [altAccuracy] In units. If the implementation cannot provide altitude information, the value of this
+ *   attribute must be null. Otherwise, the value of the altitudeAccuracy attribute must be a non-negative real number.
+ * @param {number} [heading] The direction of travel of the hosting device and is specified in degrees,
+ *   where 0� ? heading < 360�, counting clockwise relative to the true north. If the implementation cannot provide
+ *   heading information, the value of this attribute must be null. If the hosting device is stationary (i.e. the value
+ *   of the speed attribute is 0), then the value of the heading attribute must be NaN.
+ * @param {number} [speed] Denotes the magnitude of the horizontal component of the hosting device's current velocity
+ *   and is specified in units per second. If the implementation cannot provide speed information, the value of this
+ *   attribute must be null. Otherwise, the value of the speed attribute must be a non-negative real number.
  * @constructor
  */
-u.TimeSpan = function(milliseconds) {
-  if (milliseconds < 0) { milliseconds = 0; }
+u.Geolocation = function (lat, lng, accuracy, unit, zoom, range, alt, altAccuracy, heading, speed) {
+  /**
+   * @type {number}
+   */
+  this['lat'] = lat;
 
   /**
    * @type {number}
-   * @private
    */
-  this._totalMilliseconds = milliseconds;
+  this['lng'] = lng;
 
   /**
-   * @type {?number}
-   * @private
+   * @type {number}
    */
-  this._totalDays = null;
+  this['range'] = (range == undefined) ? null : range;
 
   /**
-   * @type {?number}
-   * @private
+   * @type {number}
    */
-  this._totalHours = null;
+  this['accuracy'] = accuracy || 0;
 
   /**
-   * @type {?number}
-   * @private
+   * @type {number}
    */
-  this._totalMinutes = null;
+  this['zoom'] = (zoom == undefined) ? null : zoom;
 
   /**
-   * @type {?number}
-   * @private
+   * @type {u.Geolocation.Unit}
    */
-  this._totalSeconds = null;
-
+  this['unit'] = unit || u.Geolocation.Unit['M'];
 
   /**
-   * @type {?number}
-   * @private
+   * @type {number}
    */
-  this._days = null;
+  this['alt'] = (alt == undefined) ? null : alt;
 
   /**
-   * @type {?number}
-   * @private
+   * @type {number}
    */
-  this._hours = null;
+  this['altAccuracy'] = (altAccuracy == undefined) ? null : altAccuracy;
 
   /**
-   * @type {?number}
-   * @private
+   * @type {number}
    */
-  this._minutes = null;
+  this['heading'] = (heading == undefined) ? null : heading;
 
   /**
-   * @type {?number}
-   * @private
+   * @type {number}
    */
-  this._seconds = null;
-
-  /**
-   * @type {?number}
-   * @private
-   */
-  this._milliseconds = null;
+  this['speed'] = (speed == undefined) ? null : speed;
 };
 
 /**
- * @constant {number}
+ * @param {u.Geolocation} [other]
+ * @returns {boolean}
  */
-u.TimeSpan.MS_IN_SECOND = 1000;
+u.Geolocation.prototype.equals = function(other) {
+  if (other == undefined) { return false; }
+  var g = (other instanceof u.Geolocation) ? other : new u.Geolocation(other['lat'], other['lng'], other['accuracy'], other['unit'], other['zoom'], other['range'], other['alt'], other['altAccuracy'], other['heading'], other['speed']);
+
+  var converted = u.Geolocation.convert(g, this['unit']);
+  return this['lat'] == converted['lat'] && this['lng'] == converted['lng'] && this['zoom'] == converted['zoom'] &&
+    this['range'] == converted['range'] && this['accuracy'] == converted['accuracy'] && this['alt'] == converted['alt'] &&
+    this['altAccuracy'] == converted['altAccuracy'] && this['heading'] == converted['heading'] && this['speed'] == converted['speed'];
+};
 
 /**
- * @constant {number}
+ * @returns {u.Geolocation}
  */
-u.TimeSpan.MS_IN_MINUTE = 60 * u.TimeSpan.MS_IN_SECOND;
+u.Geolocation.prototype.copy = function() {
+  return new u.Geolocation(this['lat'], this['lng'], this['accuracy'], this['unit'], this['zoom'],
+    this['range'], this['alt'], this['altAccuracy'], this['heading'], this['speed']);
+};
+
 
 /**
- * @constant {number}
+ * @license MIT License http://www.movable-type.co.uk/scripts/latlong.html
  */
-u.TimeSpan.MS_IN_HOUR = 60 * u.TimeSpan.MS_IN_MINUTE;
+/**
+ * Returns the distance from ‘this’ point to destination point (using haversine formula).
+ *
+ * @param   {u.Geolocation|{lat: number, lng: number}} point - Latitude/longitude of destination point.
+ * @param   {number} [radius=6371e3] - (Mean) radius of earth (defaults to radius in metres).
+ * @returns {number} Distance between this point and destination point, in same units as radius (meters by default).
+ *
+ * @example
+ *     var p1 = new LatLon(52.205, 0.119);
+ *     var p2 = new LatLon(48.857, 2.351);
+ *     var d = p1.distanceTo(p2); // 404.3 km
+ */
+u.Geolocation.prototype.distanceTo = function(point, radius) {
+  radius = (radius === undefined) ? 6371010 : Number(radius);
+
+  var R = radius;
+  var phi1 = u.math.deg2rad(this['lat']),  lambda1 = u.math.deg2rad(this['lng']);
+  var phi2 = u.math.deg2rad(point['lat']), lambda2 = u.math.deg2rad(point['lng']);
+  var dphi = phi2 - phi1;
+  var dlambda = lambda2 - lambda1;
+
+  var a = Math.sin(dphi/2) * Math.sin(dphi/2)
+    + Math.cos(phi1) * Math.cos(phi2)
+    * Math.sin(dlambda/2) * Math.sin(dlambda/2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
 
 /**
- * @constant {number}
+ * FIXME: Untested
+ * Returns the destination point from ‘this’ point having travelled the given distance on the
+ * given initial bearing (bearing normally varies around path followed).
+ *
+ * @param   {number} distance - Distance travelled, in same units as earth radius (default: metres).
+ * @param   {number} bearing - Initial bearing in degrees from north.
+ * @param   {number} [radius=6371e3] - (Mean) radius of earth (defaults to radius in metres).
+ * @returns {u.Geolocation} Destination point.
+ *
+ * @example
+ *     var p1 = new LatLon(51.4778, -0.0015);
+ *     var p2 = p1.destinationPoint(7794, 300.7); // 51.5135°N, 000.0983°W
  */
-u.TimeSpan.MS_IN_DAY = 24 * u.TimeSpan.MS_IN_HOUR;
+u.Geolocation.prototype.destinationPoint = function(distance, bearing, radius) {
+  radius = (radius === undefined) ? 6371010 : Number(radius);
+
+  // see http://williams.best.vwh.net/avform.htm#LL
+
+  var delta = Number(distance) / radius; // angular distance in radians
+  var theta = u.math.deg2rad(Number(bearing));
+
+  var phi1 = u.math.deg2rad(this['lat']);
+  var lambda1 = u.math.deg2rad(this['lng']);
+
+  var phi2 = Math.asin(Math.sin(phi1)*Math.cos(delta) + Math.cos(phi1)*Math.sin(delta)*Math.cos(theta));
+  var x = Math.cos(delta) - Math.sin(phi1) * Math.sin(phi2);
+  var y = Math.sin(theta) * Math.sin(delta) * Math.cos(phi1);
+  var lambda2 = lambda1 + Math.atan2(y, x);
+
+  return new u.Geolocation(u.math.rad2deg(phi2), (u.math.rad2deg(lambda2)+540)%360-180, 0); // normalize to −180..+180°
+};
 
 /**
+ * FIXME: Untested
+ * @param {number} dist
+ * @param {u.Geolocation.Unit} [unit]
+ * @returns {{sw: u.Geolocation, ne:u.Geolocation}}
+ */
+u.Geolocation.prototype.boundingBox = function(dist, unit) {
+  var MIN_LAT = -Math.PI / 2;
+  var MAX_LAT = Math.PI / 2;
+  var MIN_LNG = -Math.PI;
+  var MAX_LNG = Math.PI;
+
+  // Calculate the radius of the earth (spherical)
+  var radius2 = u.Geolocation.getEarthRadiusWGS84(this['lat'], unit);
+
+  // Angular dist in radians on a great circle
+  var angular = dist / radius2;
+
+  // Latitude and longitude in radians
+  var radLat = u.math.deg2rad(this['lat']);
+  var radLng = u.math.deg2rad(this['lng']);
+
+  // Initial min and max
+  var sLat = radLat - angular;
+  var nLat = radLat + angular;
+  var wLng = 0;
+  var eLng = 0;
+
+  if (sLat > MIN_LAT && nLat < MAX_LAT) {
+    var deltaLng = Math.asin(Math.sin(angular) / Math.cos(radLat));
+
+    wLng = radLng - deltaLng;
+    if (wLng < MIN_LNG) { wLng += 2 * Math.PI; }
+
+    eLng = radLng + deltaLng;
+    if (eLng > MAX_LNG) { eLng -= 2 * Math.PI; }
+  } else {
+    // A pole is within the dist
+    sLat = Math.max(sLat, MIN_LAT);
+    nLat = Math.min(nLat, MAX_LAT);
+    wLng = MIN_LNG;
+    eLng = MAX_LNG;
+  }
+
+  return {
+    'sw': new u.Geolocation(u.math.rad2deg(sLat), u.math.rad2deg(wLng), 0),
+    'ne': new u.Geolocation(u.math.rad2deg(nLat), u.math.rad2deg(eLng), 0)
+  };
+};
+
+/**
+ * @license MIT License http://www.movable-type.co.uk/scripts/latlong.html
+ */
+/**
+ * Computes the distance between the two given locations (using haversine formula) in meters.
+ * @param {{lat: number, lng: number}} l1
+ * @param {{lat: number, lng: number}} l2
  * @returns {number}
  */
-u.TimeSpan.prototype.days = function() {
-  if (this._days == null) { this._days = Math.floor(this.totalDays()); }
-  return this._days;
+u.Geolocation.distanceBetween = function(l1, l2) {
+  var R = 6371010;
+  var phi1 = u.math.deg2rad(l1['lat']), lambda1 = u.math.deg2rad(l1['lng']);
+  var phi2 = u.math.deg2rad(l2['lat']), lambda2 = u.math.deg2rad(l2['lng']);
+  var dphi = phi2 - phi1;
+  var dlambda = lambda2 - lambda1;
+
+  var a = Math.sin(dphi/2) * Math.sin(dphi/2)
+    + Math.cos(phi1) * Math.cos(phi2)
+    * Math.sin(dlambda/2) * Math.sin(dlambda/2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
 };
 
 /**
+ * FIXME: Untested
+ * Earth radius at a given lat, according to the WGS-84 ellipsoid figure
+ * @param {number} lat The lat of the coordinate.
+ * @param {u.Geolocation.Unit} [unit]
+ */
+u.Geolocation.getEarthRadiusWGS84 = function(lat, unit) {
+  // http://en.wikipedia.org/wiki/Earth_radius
+
+  var WGS84_a = 6378137.0; // Major semiaxis [m]
+  var WGS84_b = 6356752.314245; // Minor semiaxis [m]
+  var WGS84_f = 1 / 298.257223563; // Flattening [m]
+
+  var An = WGS84_a * WGS84_a * Math.cos(lat);
+  var Bn = WGS84_b * WGS84_b * Math.sin(lat);
+  var Ad = WGS84_a * Math.cos(lat);
+  var Bd = WGS84_b * Math.sin(lat);
+
+  var result = Math.sqrt((An * An + Bn * Bn) / (Ad * Ad + Bd * Bd));
+
+  unit = (unit == undefined) ? u.Geolocation.Unit['M'] : unit;
+  return u.Geolocation.convertUnits(result, u.Geolocation.Unit['M'], unit);
+};
+
+/**
+ * FIXME: Untested
+ * @param {u.Geolocation} location
+ * @param {u.Geolocation.Unit} unit
+ * @returns {u.Geolocation}
+ */
+u.Geolocation.convert = function(location, unit) {
+  if (location['unit'] == unit) { return location; }
+
+  var ratio = u.Geolocation.CONVERSION_TABLE[location['unit']][unit];
+
+  return new u.Geolocation(
+    location['lat'],
+    location['lng'],
+    location['accuracy'] * ratio,
+    unit,
+    location['zoom'],
+    location['range'] == null ? location['range'] : location['range'] * ratio,
+    location['alt'] == null ? location['alt'] : location['alt'] * ratio,
+    location['altAccuracy'] == null ? location['altAccuracy'] : location['altAccuracy'] * ratio,
+    location['heading'],
+    location['speed'] == null ? location['speed'] : location['speed'] * ratio);
+};
+
+/**
+ * FIXME: Untested
+ * @param {number} units
+ * @param {u.Geolocation.Unit} fromUnit
+ * @param {u.Geolocation.Unit} toUnit
  * @returns {number}
  */
-u.TimeSpan.prototype.hours = function() {
-  if (this._hours == null) {
-    this._hours = Math.floor((this.totalDays() - this.days()) * 24);
-  }
-  return this._hours;
+u.Geolocation.convertUnits = function(units, fromUnit, toUnit) {
+  if (fromUnit == toUnit) { return units; }
+  var ratio = u.Geolocation.CONVERSION_TABLE[fromUnit][toUnit];
+  return units * ratio;
 };
 
 /**
+ * FIXME: Untested
+ * @param {number} pixels
+ * @param {number} lat
+ * @param {number} zoom
+ * @param {u.Geolocation.Unit} [unit]
  * @returns {number}
  */
-u.TimeSpan.prototype.minutes = function() {
-  if (this._minutes == null) {
-    this._minutes = Math.floor((this.totalHours() - Math.floor(this.totalHours())) * 60);
-  }
-  return this._minutes;
+u.Geolocation.googleMapPixels2Distance = function(pixels, lat, zoom, unit) {
+  var meters = pixels * (Math.cos(lat * Math.PI / 180) * 2 * Math.PI * 6378137) / (256 * (2 << zoom));
+  if (unit == undefined) { return meters; }
+  return u.Geolocation.convertUnits(meters, u.Geolocation.Unit['M'], unit);
 };
 
 /**
+ * FIXME: Untested
+ * @param {number} meters
+ * @param {number} pixels
+ * @param {number} lat
  * @returns {number}
  */
-u.TimeSpan.prototype.seconds = function() {
-  if (this._seconds == null) {
-    this._seconds = Math.floor((this.totalMinutes() - Math.floor(this.totalMinutes())) * 60);
-  }
-  return this._seconds;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.milliseconds = function() {
-  if (this._milliseconds == null) {
-    this._milliseconds = this._totalMilliseconds % 1000;
-  }
-  return this._milliseconds;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.totalDays = function() {
-  if (this._totalDays == null) {
-    this._totalDays = this._totalMilliseconds / u.TimeSpan.MS_IN_DAY;
-  }
-  return this._totalDays;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.totalHours = function() {
-  if (this._totalHours == null) {
-    this._totalHours = this._totalMilliseconds / u.TimeSpan.MS_IN_HOUR;
-  }
-  return this._totalHours;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.totalMinutes = function() {
-  if (this._totalMinutes == null) {
-    this._totalMinutes = this._totalMilliseconds / u.TimeSpan.MS_IN_MINUTE;
-  }
-  return this._totalMinutes;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.totalSeconds = function() {
-  if (this._totalSeconds == null) {
-    this._totalSeconds = this._totalMilliseconds / u.TimeSpan.MS_IN_SECOND;
-  }
-  return this._totalSeconds;
-};
-
-/**
- * @returns {number}
- */
-u.TimeSpan.prototype.totalMilliseconds = function() { return this._totalMilliseconds; };
-
-/**
- * TODO: Add a formatting parameter
- * @override
- * @returns {string}
- */
-u.TimeSpan.prototype.toString = function() {
-  var ret = '';
-  if (this.days() > 0) {
-    if (this.days() > 1) { ret += this.days() + ' days'; }
-    else { ret += 'one day'}
-  }
-
-  if (this.hours() > 0) {
-    if (ret) { ret += ', '; }
-    if (this.hours() > 1) { ret += this.hours() + ' hours'; }
-    else { ret += 'one hour'; }
-  }
-
-  if (this.minutes() > 0) {
-    if (ret) { ret += ' and '; }
-    if (this.minutes() > 1) { ret += this.minutes() + ' minutes'; }
-    else { ret += 'one minute'; }
-  } else if (!ret) {
-    ret += 'less than a minute';
-  }
-
-  return u.string.capitalizeFirstLetter(ret);
+u.Geolocation.googleMapMetersPixels2Zoom = function(meters, pixels, lat) {
+  // log2 exists in es6 but not earlier versions;
+  var log2 = Math['log2'] || function (x) {
+      x = Number(x);
+      return Math.log(x) * Math.LOG2E;
+    };
+  return Math.floor(log2(pixels * (Math.cos(lat * Math.PI / 180) * 2 * Math.PI * 6378137)) - log2(meters) - 9);
 };
 
 
+/** @const {number} */
+u.Geolocation.M2KM = 0.001;
 
-goog.provide('u.log');
+/** @const {number} */
+u.Geolocation.KM2M = 1000.0;
+
+/** @const {number} */
+u.Geolocation.M2MI = 0.000621371192237334;
+
+/** @const {number} */
+u.Geolocation.MI2M = 1609.3439999999999;
+
+/** @const {number} */
+u.Geolocation.M2FT = 3.28084;
+
+/** @const {number} */
+u.Geolocation.FT2M = 0.3048;
+
+/** @const {number} */
+u.Geolocation.KM2MI = u.Geolocation.KM2M * u.Geolocation.M2MI;
+
+/** @const {number} */
+u.Geolocation.MI2KM = u.Geolocation.MI2M * u.Geolocation.M2KM;
+
+/** @const {number} */
+u.Geolocation.KM2FT = u.Geolocation.KM2M * u.Geolocation.M2FT;
+
+/** @const {number} */
+u.Geolocation.FT2KM = u.Geolocation.FT2M * u.Geolocation.M2KM;
+
+/** @const {number} */
+u.Geolocation.MI2FT = 5280;
+
+/** @const {number} */
+u.Geolocation.FT2MI = 0.000189394;
 
 /**
- * @param {...} args
+ * @const {Object.<u.Geolocation.Unit, Object.<u.Geolocation.Unit, number>>}
  */
-u.log.info = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (verbose != 'info') { return; }
-
-  var logger = u.log['LOGGER'] || console;
-  logger.info.apply(logger, arguments);
+u.Geolocation.CONVERSION_TABLE = {
+  '2': {
+    '2': 1,
+    '1': u.Geolocation.M2KM,
+    '0': u.Geolocation.M2MI,
+    '3': u.Geolocation.M2FT
+  },
+  '1': {
+    '2': u.Geolocation.KM2M,
+    '1': 1,
+    '0': u.Geolocation.KM2MI,
+    '3': u.Geolocation.KM2FT
+  },
+  '0': {
+    '2': u.Geolocation.MI2M,
+    '1': u.Geolocation.MI2KM,
+    '0': 1,
+    '3': u.Geolocation.MI2FT
+  },
+  '3': {
+    '2': u.Geolocation.FT2M,
+    '1': u.Geolocation.FT2KM,
+    '0': u.Geolocation.FT2MI,
+    '3': 1
+  }
 };
 
 /**
- * @param {...} args
+ * @const {Object.<u.Geolocation.UnitName, Object.<u.Geolocation.UnitName, number>>}
  */
-u.log.warn = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (['warn', 'info'].indexOf(verbose) < 0) { return; }
-
-  var logger = u.log['LOGGER'] || console;
-  logger.warn.apply(logger, arguments);
+u.Geolocation.CONVERSION_TABLE_S = {
+  'm': {
+    'm': 1,
+    'km': u.Geolocation.M2KM,
+    'mi': u.Geolocation.M2MI,
+    'ft': u.Geolocation.M2FT
+  },
+  'km': {
+    'm': u.Geolocation.KM2M,
+    'km': 1,
+    'mi': u.Geolocation.KM2MI,
+    'ft': u.Geolocation.KM2FT
+  },
+  'mi': {
+    'm': u.Geolocation.MI2M,
+    'km': u.Geolocation.MI2KM,
+    'mi': 1,
+    'ft': u.Geolocation.MI2FT
+  },
+  'ft': {
+    'm': u.Geolocation.FT2M,
+    'km': u.Geolocation.FT2KM,
+    'mi': u.Geolocation.FT2MI,
+    'ft': 1
+  }
 };
 
 /**
- * @param {...} args
+ * @enum {number}
  */
-u.log.error = function(args) {
-  var verbose = u.log['VERBOSE'];
-  if (['error', 'warn', 'info'].indexOf(verbose) < 0) { return; }
+u.Geolocation.Unit = {
+  'MI': 0,
+  'KM': 1,
+  'M': 2,
+  'FT': 3
+};
 
-  var logger = u.log['LOGGER'] || console;
-  logger.error.apply(logger, arguments);
+/**
+ * @enum {string}
+ */
+u.Geolocation.UnitName = {
+  '0': 'mi',
+  '1': 'km',
+  '2': 'm',
+  '3': 'ft'
+};
+
+/**
+ * @enum {string}
+ */
+u.Geolocation.UnitLongNameSg = {
+  '0': 'mile',
+  '1': 'kilometer',
+  '2': 'meter',
+  '3': 'foot'
+};
+
+/**
+ * @enum {string}
+ */
+u.Geolocation.UnitLongNamePl = {
+  '0': 'miles',
+  '1': 'kilometers',
+  '2': 'meters',
+  '3': 'feet'
 };

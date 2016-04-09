@@ -13,11 +13,12 @@ goog.exportProperty(u.Geolocation.prototype, 'distanceTo', u.Geolocation.prototy
 goog.exportProperty(u.Geolocation.prototype, 'destinationPoint', u.Geolocation.prototype.destinationPoint);
 goog.exportProperty(u.Geolocation.prototype, 'boundingBox', u.Geolocation.prototype.boundingBox);
 
-goog.exportProperty(u.Geolocation.prototype, 'getEarthRadiusWGS84', u.Geolocation.getEarthRadiusWGS84);
-goog.exportProperty(u.Geolocation.prototype, 'convert', u.Geolocation.convert);
-goog.exportProperty(u.Geolocation.prototype, 'convertUnits', u.Geolocation.convertUnits);
-goog.exportProperty(u.Geolocation.prototype, 'googleMapPixels2Distance', u.Geolocation.googleMapPixels2Distance);
-goog.exportProperty(u.Geolocation.prototype, 'googleMapMetersPixels2Zoom', u.Geolocation.googleMapMetersPixels2Zoom);
+goog.exportProperty(u.Geolocation, 'distanceBetween', u.Geolocation.distanceBetween);
+goog.exportProperty(u.Geolocation, 'getEarthRadiusWGS84', u.Geolocation.getEarthRadiusWGS84);
+goog.exportProperty(u.Geolocation, 'convert', u.Geolocation.convert);
+goog.exportProperty(u.Geolocation, 'convertUnits', u.Geolocation.convertUnits);
+goog.exportProperty(u.Geolocation, 'googleMapPixels2Distance', u.Geolocation.googleMapPixels2Distance);
+goog.exportProperty(u.Geolocation, 'googleMapMetersPixels2Zoom', u.Geolocation.googleMapMetersPixels2Zoom);
 
 goog.exportSymbol('u.Geolocation.M2KM', u.Geolocation.M2KM);
 goog.exportSymbol('u.Geolocation.KM2M', u.Geolocation.KM2M);

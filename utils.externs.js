@@ -72,18 +72,271 @@ u.array.uniqueKey = function(arr, key) {};
 u.array.indexOf = function(arr, predicate, thisArg) {};
 
 /**
- * @param {number} [lat]
- * @param {number} [lng]
- * @param {number} [zoom]
- * @param {number} [range]
+ * @param {number} lat
+ * @param {number} lng
+ * @param {number} [accuracy=0] The accuracy level of the latitude and longitude coordinates. It is specified in units and
+ *   must be supported by all implementations. The value of the accuracy attribute must be a non-negative real number.
+ * @param {u.Geolocation.Unit} [unit]
+ * @param {number} [zoom] Google Maps zoom level
+ * @param {number} [range] Radius in units around center; not to be confused with accuracy!
+ * @param {number} [alt] In units. The height of the position, specified in units above the [WGS84] ellipsoid. If the
+ *   implementation cannot provide altitude information, the value of this attribute must be null.
+ * @param {number} [altAccuracy] In units. If the implementation cannot provide altitude information, the value of this
+ *   attribute must be null. Otherwise, the value of the altitudeAccuracy attribute must be a non-negative real number.
+ * @param {number} [heading] The direction of travel of the hosting device and is specified in degrees,
+ *   where 0� ? heading < 360�, counting clockwise relative to the true north. If the implementation cannot provide
+ *   heading information, the value of this attribute must be null. If the hosting device is stationary (i.e. the value
+ *   of the speed attribute is 0), then the value of the heading attribute must be NaN.
+ * @param {number} [speed] Denotes the magnitude of the horizontal component of the hosting device's current velocity
+ *   and is specified in units per second. If the implementation cannot provide speed information, the value of this
+ *   attribute must be null. Otherwise, the value of the speed attribute must be a non-negative real number.
  * @constructor
  */
-u.Geolocation = function(lat, lng, zoom, range) {};
+u.Geolocation = function (lat, lng, accuracy, unit, zoom, range, alt, altAccuracy, heading, speed) {};
 
 /**
- * @param {u.Geolocation|{lat: number, lng: number, zoom: number}} other
+ * @param {u.Geolocation} [other]
+ * @returns {boolean}
  */
 u.Geolocation.prototype.equals = function(other) {};
+
+/**
+ * @returns {u.Geolocation}
+ */
+u.Geolocation.prototype.copy = function() {};
+
+/**
+ * @license MIT License http://www.movable-type.co.uk/scripts/latlong.html
+ */
+/**
+ * Returns the distance from ‘this’ point to destination point (using haversine formula).
+ *
+ * @param   {u.Geolocation|{lat: number, lng: number}} point - Latitude/longitude of destination point.
+ * @param   {number} [radius=6371e3] - (Mean) radius of earth (defaults to radius in metres).
+ * @returns {number} Distance between this point and destination point, in same units as radius (meters by default).
+ *
+ * @example
+ *     var p1 = new LatLon(52.205, 0.119);
+ *     var p2 = new LatLon(48.857, 2.351);
+ *     var d = p1.distanceTo(p2); // 404.3 km
+ */
+u.Geolocation.prototype.distanceTo = function(point, radius) {};
+
+/**
+ * FIXME: Untested
+ * Returns the destination point from ‘this’ point having travelled the given distance on the
+ * given initial bearing (bearing normally varies around path followed).
+ *
+ * @param   {number} distance - Distance travelled, in same units as earth radius (default: metres).
+ * @param   {number} bearing - Initial bearing in degrees from north.
+ * @param   {number} [radius=6371e3] - (Mean) radius of earth (defaults to radius in metres).
+ * @returns {u.Geolocation} Destination point.
+ *
+ * @example
+ *     var p1 = new LatLon(51.4778, -0.0015);
+ *     var p2 = p1.destinationPoint(7794, 300.7); // 51.5135°N, 000.0983°W
+ */
+u.Geolocation.prototype.destinationPoint = function(distance, bearing, radius) {};
+
+/**
+ * FIXME: Untested
+ * @param {number} dist
+ * @param {u.Geolocation.Unit} [unit]
+ * @returns {{sw: u.Geolocation, ne:u.Geolocation}}
+ */
+u.Geolocation.prototype.boundingBox = function(dist, unit) {};
+
+/**
+ * @license MIT License http://www.movable-type.co.uk/scripts/latlong.html
+ */
+/**
+ * Computes the distance between the two given locations (using haversine formula) in meters.
+ * @param {{lat: number, lng: number}} l1
+ * @param {{lat: number, lng: number}} l2
+ * @returns {number}
+ */
+u.Geolocation.distanceBetween = function(l1, l2) {};
+
+/**
+ * FIXME: Untested
+ * Earth radius at a given lat, according to the WGS-84 ellipsoid figure
+ * @param {number} lat The lat of the coordinate.
+ * @param {u.Geolocation.Unit} [unit]
+ */
+u.Geolocation.getEarthRadiusWGS84 = function(lat, unit) {};
+
+/**
+ * FIXME: Untested
+ * @param {u.Geolocation} location
+ * @param {u.Geolocation.Unit} unit
+ * @returns {u.Geolocation}
+ */
+u.Geolocation.convert = function(location, unit) {};
+
+/**
+ * FIXME: Untested
+ * @param {number} units
+ * @param {u.Geolocation.Unit} fromUnit
+ * @param {u.Geolocation.Unit} toUnit
+ * @returns {number}
+ */
+u.Geolocation.convertUnits = function(units, fromUnit, toUnit) {};
+
+/**
+ * FIXME: Untested
+ * @param {number} pixels
+ * @param {number} lat
+ * @param {number} zoom
+ * @param {u.Geolocation.Unit} [unit]
+ * @returns {number}
+ */
+u.Geolocation.googleMapPixels2Distance = function(pixels, lat, zoom, unit) {};
+
+/**
+ * FIXME: Untested
+ * @param {number} meters
+ * @param {number} pixels
+ * @param {number} lat
+ * @returns {number}
+ */
+u.Geolocation.googleMapMetersPixels2Zoom = function(meters, pixels, lat) {};
+
+/** @const {number} */
+u.Geolocation.M2KM = 0.001;
+
+/** @const {number} */
+u.Geolocation.KM2M = 1000.0;
+
+/** @const {number} */
+u.Geolocation.M2MI = 0.000621371192237334;
+
+/** @const {number} */
+u.Geolocation.MI2M = 1609.3439999999999;
+
+/** @const {number} */
+u.Geolocation.M2FT = 3.28084;
+
+/** @const {number} */
+u.Geolocation.FT2M = 0.3048;
+
+/** @const {number} */
+u.Geolocation.KM2MI = u.Geolocation.KM2M * u.Geolocation.M2MI;
+
+/** @const {number} */
+u.Geolocation.MI2KM = u.Geolocation.MI2M * u.Geolocation.M2KM;
+
+/** @const {number} */
+u.Geolocation.KM2FT = u.Geolocation.KM2M * u.Geolocation.M2FT;
+
+/** @const {number} */
+u.Geolocation.FT2KM = u.Geolocation.FT2M * u.Geolocation.M2KM;
+
+/** @const {number} */
+u.Geolocation.MI2FT = 5280;
+
+/** @const {number} */
+u.Geolocation.FT2MI = 0.000189394;
+
+/**
+ * @const {Object.<u.Geolocation.Unit, Object.<u.Geolocation.Unit, number>>}
+ */
+u.Geolocation.CONVERSION_TABLE = {
+  '2': {
+    '2': 1,
+    '1': u.Geolocation.M2KM,
+    '0': u.Geolocation.M2MI,
+    '3': u.Geolocation.M2FT
+  },
+  '1': {
+    '2': u.Geolocation.KM2M,
+    '1': 1,
+    '0': u.Geolocation.KM2MI,
+    '3': u.Geolocation.KM2FT
+  },
+  '0': {
+    '2': u.Geolocation.MI2M,
+    '1': u.Geolocation.MI2KM,
+    '0': 1,
+    '3': u.Geolocation.MI2FT
+  },
+  '3': {
+    '2': u.Geolocation.FT2M,
+    '1': u.Geolocation.FT2KM,
+    '0': u.Geolocation.FT2MI,
+    '3': 1
+  }
+};
+
+/**
+ * @const {Object.<u.Geolocation.UnitName, Object.<u.Geolocation.UnitName, number>>}
+ */
+u.Geolocation.CONVERSION_TABLE_S = {
+  'm': {
+    'm': 1,
+    'km': u.Geolocation.M2KM,
+    'mi': u.Geolocation.M2MI,
+    'ft': u.Geolocation.M2FT
+  },
+  'km': {
+    'm': u.Geolocation.KM2M,
+    'km': 1,
+    'mi': u.Geolocation.KM2MI,
+    'ft': u.Geolocation.KM2FT
+  },
+  'mi': {
+    'm': u.Geolocation.MI2M,
+    'km': u.Geolocation.MI2KM,
+    'mi': 1,
+    'ft': u.Geolocation.MI2FT
+  },
+  'ft': {
+    'm': u.Geolocation.FT2M,
+    'km': u.Geolocation.FT2KM,
+    'mi': u.Geolocation.FT2MI,
+    'ft': 1
+  }
+};
+
+/**
+ * @enum {number}
+ */
+u.Geolocation.Unit = {
+  'MI': 0,
+  'KM': 1,
+  'M': 2,
+  'FT': 3
+};
+
+/**
+ * @enum {string}
+ */
+u.Geolocation.UnitName = {
+  '0': 'mi',
+  '1': 'km',
+  '2': 'm',
+  '3': 'ft'
+};
+
+/**
+ * @enum {string}
+ */
+u.Geolocation.UnitLongNameSg = {
+  '0': 'mile',
+  '1': 'kilometer',
+  '2': 'meter',
+  '3': 'foot'
+};
+
+/**
+ * @enum {string}
+ */
+u.Geolocation.UnitLongNamePl = {
+  '0': 'miles',
+  '1': 'kilometers',
+  '2': 'meters',
+  '3': 'feet'
+};
+
 
 u.math = {};
 

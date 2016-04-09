@@ -119,6 +119,8 @@ QUnit.test('u.Geolocation', function(assert) {
   g2 = new u.Geolocation(42.339139, -71.136610);
 
   assert.ok(Math.abs(g1.distanceTo(g2) - 1034.4163801246343) < 0.001);
+
+  assert.ok(Math.abs(u.Geolocation.distanceBetween({lat:42.336475, lng:-71.148668}, {lat:42.339139, lng:-71.136610}) - 1034.4163801246343) < 0.001);
 });
 
 QUnit.test('u.Event', function(assert) {

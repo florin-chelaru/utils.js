@@ -217,6 +217,29 @@ u.Geolocation.prototype.boundingBox = function(dist, unit) {
 };
 
 /**
+ * @license MIT License http://www.movable-type.co.uk/scripts/latlong.html
+ */
+/**
+ * Computes the distance between the two given locations (using haversine formula) in meters.
+ * @param {{lat: number, lng: number}} l1
+ * @param {{lat: number, lng: number}} l2
+ * @returns {number}
+ */
+u.Geolocation.distanceBetween = function(l1, l2) {
+  var R = 6371010;
+  var phi1 = u.math.deg2rad(l1['lat']), lambda1 = u.math.deg2rad(l1['lng']);
+  var phi2 = u.math.deg2rad(l2['lat']), lambda2 = u.math.deg2rad(l2['lng']);
+  var dphi = phi2 - phi1;
+  var dlambda = lambda2 - lambda1;
+
+  var a = Math.sin(dphi/2) * Math.sin(dphi/2)
+    + Math.cos(phi1) * Math.cos(phi2)
+    * Math.sin(dlambda/2) * Math.sin(dlambda/2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+/**
  * FIXME: Untested
  * Earth radius at a given lat, according to the WGS-84 ellipsoid figure
  * @param {number} lat The lat of the coordinate.
