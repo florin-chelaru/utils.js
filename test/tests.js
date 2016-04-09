@@ -109,11 +109,16 @@ QUnit.test('u.TimeSpan', function(assert) {
 QUnit.test('u.Geolocation', function(assert) {
   assert.ok(u.Geolocation);
 
-  var g1 = new u.Geolocation(10, 20, 30, 40);
-  var g2 = new u.Geolocation(10, 20, 30, 40);
+  var g1 = new u.Geolocation(10, 20);
+  var g2 = new u.Geolocation(10, 20);
 
   assert.ok(g1.equals(g2));
-  assert.ok(g1.equals({lat: 10, lng: 20, zoom: 30, range: 40}));
+  assert.ok(g1.equals({lat: 10, lng: 20}));
+
+  g1 = new u.Geolocation(42.336475, -71.148668);
+  g2 = new u.Geolocation(42.339139, -71.136610);
+
+  assert.ok(Math.abs(g1.distanceTo(g2) - 1034.4163801246343) < 0.001);
 });
 
 QUnit.test('u.Event', function(assert) {

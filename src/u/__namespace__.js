@@ -22,3 +22,4 @@ goog.require('u.TimeSpan');
 goog.require('u.UnimplementedException');
 goog.require('u.QuadTree');
 goog.require('u.fast');
+goog.require('u.Geolocation');
