@@ -13,3 +13,4 @@ goog.exportSymbol('u.array.unique', u.array.unique);
 goog.exportSymbol('u.array.uniqueFast', u.array.uniqueFast);
 goog.exportSymbol('u.array.uniqueKey', u.array.uniqueKey);
 goog.exportSymbol('u.array.indexOf', u.array.indexOf);
+goog.exportSymbol('u.array.equal', u.array.equal);

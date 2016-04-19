@@ -486,7 +486,7 @@ QUnit.test('u.array.uniqueKey', function(assert) {
 });
 
 QUnit.test('u.array.indexOf', function(assert) {
-  ok(u.array.indexOf);
+  assert.ok(u.array.indexOf);
 
   var e = new u.Exception('my message');
   var arr = [1, 'a', e, e, e, 'a', 7, 'a', 'b', 1, 12];
@@ -494,6 +494,24 @@ QUnit.test('u.array.indexOf', function(assert) {
   assert.equal(u.array.indexOf(arr, function(el, i) {
     return el instanceof u.Exception;
   }), 2);
+});
+
+QUnit.test('u.array.equal', function(assert) {
+  assert.ok(u.array.equal);
+
+  assert.ok(u.array.equal(null, null));
+  assert.ok(u.array.equal(undefined, undefined));
+  assert.ok(u.array.equal(null, undefined));
+  assert.ok(u.array.equal(undefined, null));
+  assert.ok(u.array.equal([], []));
+
+  assert.ok(u.array.equal([1,2,3], [1,2,3]));
+  assert.notOk(u.array.equal([1,2,3,4], [1,2,3,5]));
+  assert.notOk(u.array.equal([1,2,3], [1,2,3,5]));
+  assert.notOk(u.array.equal(null, [1,2,3,5]));
+  assert.notOk(u.array.equal([1,2,3], null));
+
+  assert.ok(u.array.equal([{'a':'b'}, {'a':'c'}], [{'a':'b'}, {'a':'c'}], function(x, y) { return x.a == y.a; }));
 });
 
 
