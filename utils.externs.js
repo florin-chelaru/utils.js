@@ -72,6 +72,13 @@ u.array.uniqueKey = function(arr, key) {};
 u.array.indexOf = function(arr, predicate, thisArg) {};
 
 /**
+ * @param {Array} a
+ * @param {Array} b
+ * @param {function(*, *): boolean} [itemsEqual]
+ */
+u.array.equal = function(a, b, itemsEqual) {};
+
+/**
  * @param {number} lat
  * @param {number} lng
  * @param {number} [accuracy=0] The accuracy level of the latitude and longitude coordinates. It is specified in units and
