@@ -394,6 +394,34 @@ u.rgb2hex = function(r, g, b) {
 };
 
 /**
+ * @param {string} color
+ * @returns {{hex: string, alpha: number}|null}
+ */
+u.toHexAlpha = function(color) {
+  if (typeof color != 'string' || !color.length) { return null; }
+  if (color[0] == '#') {
+    // Hex
+    return {'hex': color, 'alpha': 1};
+  }
+
+  var p;
+
+  // rgb
+  p = /rgb\s*\(\s*(\d+)\s*\,\s*(\d+)\s*\,\s*(\d+)\s*\)/g.exec(color);
+  if (p && p.length >= 4) {
+    return {'hex': u.rgb2hex(parseInt(p[1], 10), parseInt(p[2], 10), parseInt(p[3], 10)), 'alpha': 1};
+  }
+
+  // rgba
+  p = /rgba\s*\(\s*(\d+)\s*\,\s*(\d+)\s*\,\s*(\d+)\s*\,\s*(\d*\.?\d*)\s*\)/g.exec(color);
+  if (p && p.length >= 5) {
+    return {'hex': u.rgb2hex(parseInt(p[1], 10), parseInt(p[2], 10), parseInt(p[3], 10)), 'alpha': parseFloat(p[4])};
+  }
+
+  return null;
+};
+
+/**
  * @param {string} hex
  * @param {number} [alpha]
  * @returns {string}

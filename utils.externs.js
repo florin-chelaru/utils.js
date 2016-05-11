@@ -665,6 +665,12 @@ u.hex2rgb = function(hex) {};
 u.rgb2hex = function(r, g, b) {};
 
 /**
+ * @param {string} color
+ * @returns {{hex: string, alpha: number}|null}
+ */
+u.toHexAlpha = function(color) {};
+
+/**
  * @param {string} hex
  * @param {number} [alpha]
  * @returns {string}

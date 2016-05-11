@@ -407,6 +407,18 @@ QUnit.test('u.rgb2hex', function(assert) {
   assert.equal(hex, '#299dff');
 });
 
+QUnit.test('u.toHexAlpha', function(assert) {
+  assert.ok(u.toHexAlpha);
+
+  var hex = '#299dff';
+  var rgb = 'rgb(41, 157, 255)';
+  var rgba = 'rgba(41,157,255,0.3)';
+
+  assert.deepEqual(u.toHexAlpha(hex), {'hex': hex, 'alpha': 1});
+  assert.deepEqual(u.toHexAlpha(rgb), {'hex': hex, 'alpha': 1});
+  assert.deepEqual(u.toHexAlpha(rgba), {'hex': hex, 'alpha': 0.3});
+});
+
 QUnit.test('u.lighten', function(assert) {
   assert.ok(u.lighten);
 
